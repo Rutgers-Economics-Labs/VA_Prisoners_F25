@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virginia County Data Visualization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none;
+        }
+        .county {
+            stroke: #424242;
+            stroke-width: .5px;
+            cursor: pointer;
+            transition: fill 0.3s ease, transform 0.3s ease;
+        }
+        .county:hover {
+            fill-opacity: 0.8;
+        }
+        .county.active {
+            stroke: #fbbf24; /* amber-400 */
+            stroke-width: 2px;
+        }
+        /* Hide scrollbars for the main body */
+        html, body {
+            overflow: hidden;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col h-screen antialiased">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md p-4 z-20">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-900">Virginia County Statistics</h1>
+            <div class="text-sm text-gray-500">Click a county to zoom & see details</div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- Controls and Info Panel -->
+        <aside class="w-full md:w-80 lg:w-96 bg-white p-6 shadow-lg z-10 overflow-y-auto">
+            <div id="info-panel" class="space-y-4">
+                <div class="text-center p-4 border-2 border-dashed rounded-lg">
+                    <h2 class="text-lg font-semibold text-gray-700">Select a County</h2>
+                    <p class="text-sm text-gray-500">Click on the map to view detailed statistics here.</p>
+                </div>
+            </div>
+
+            <hr class="my-6">
+
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Map Overlays</h3>
+                <p class="text-sm text-gray-600">Color-code counties by a specific metric.</p>
+                <div id="controls" class="space-y-2">
+                    <!-- Radio buttons will be inserted here by D3 -->
+                </div>
+            </div>
+
+            <hr class="my-6">
+            
+            <div class="space-y-2">
+                 <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Map Legend</h3>
+                 <div id="legend" class="w-full">
+                    <!-- Legend will be inserted here -->
+                 </div>
+            </div>
+        </aside>
+
+        <!-- Map Container -->
+        <main class="flex-1 bg-gray-200 relative">
+            <svg id="map" class="w-full h-full"></svg>
+            <button id="reset-zoom" class="absolute top-4 right-4 bg-white text-gray-700 px-4 py-2 rounded-lg shadow-md font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition hidden">Reset Zoom</button>
+        </main>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 1. MOCK DATA & CONFIGURATION ---
+            const countyData = {
+                "Waynesboro": { population: 22196, prisoners: 88, jobs: 11000 },
+                "Emporia": { population: 5327, prisoners: 45, jobs: 2500 },
+                "Buena Vista": { population: 6641, prisoners: 25, jobs: 3000 },
+                "Danville": { population: 42590, prisoners: 210, jobs: 20000 },
+                "Galax": { population: 6720, prisoners: 30, jobs: 3200 },
+                "Harrisonburg": { population: 51814, prisoners: 150, jobs: 28000 },
+                "Martinsville": { population: 13485, prisoners: 70, jobs: 6000 },
+                "Charlottesville": { population: 46553, prisoners: 120, jobs: 25000 },
+                "King George": { population: 26723, prisoners: 60, jobs: 9000 },
+                "Scott": { population: 21576, prisoners: 85, jobs: 6000 },
+                "Botetourt": { population: 33596, prisoners: 75, jobs: 15000 },
+                "York": { population: 70045, prisoners: 130, jobs: 35000 },
+                "Rappahannock": { population: 7348, prisoners: 15, jobs: 3000 },
+                "Greene": { population: 20552, prisoners: 50, jobs: 8000 },
+                "Radford": { population: 16070, prisoners: 40, jobs: 7500 },
+                "Louisa": { population: 37596, prisoners: 90, jobs: 14000 },
+                "Salem": { population: 25346, prisoners: 100, jobs: 12000 },
+                "Hopewell": { population: 23033, prisoners: 110, jobs: 10000 },
+                "Falls Church": { population: 14658, prisoners: 20, jobs: 9000 },
+                "Lexington": { population: 7320, prisoners: 22, jobs: 3500 },
+                "Cumberland": { population: 9969, prisoners: 35, jobs: 4000 },
+                "Pulaski": { population: 35127, prisoners: 100, jobs: 16000 },
+                "Loudoun": { population: 420959, prisoners: 350, jobs: 220000 },
+                "Appomattox": { population: 16119, prisoners: 45, jobs: 7000 },
+                "Norton": { population: 3687, prisoners: 20, jobs: 1800 },
+                "Henrico": { population: 334389, prisoners: 800, jobs: 180000 },
+                "Franklin": { population: 54477, prisoners: 125, jobs: 22000 },
+                "Henry": { population: 50948, prisoners: 180, jobs: 23000 },
+                "Hampton": { population: 137148, prisoners: 550, jobs: 65000 },
+                "Highland": { population: 2232, prisoners: 5, jobs: 1000 },
+                "King William": { population: 17148, prisoners: 40, jobs: 7000 },
+                "Montgomery": { population: 99721, prisoners: 120, jobs: 48000 },
+                "Richmond": { population: 226610, prisoners: 700, jobs: 140000 },
+                "Amherst": { population: 31307, prisoners: 80, jobs: 12000 },
+                "Mathews": { population: 8978, prisoners: 20, jobs: 3500 },
+                "Petersburg": { population: 33458, prisoners: 150, jobs: 14000 },
+                "Goochland": { population: 24727, prisoners: 50, jobs: 10000 },
+                "Albemarle": { population: 112395, prisoners: 150, jobs: 55000 },
+                "Prince Edward": { population: 21849, prisoners: 60, jobs: 9000 },
+                "Caroline": { population: 31528, prisoners: 80, jobs: 12000 },
+                "Fluvanna": { population: 27249, prisoners: 60, jobs: 10000 },
+                "Northumberland": { population: 12320, prisoners: 30, jobs: 5000 },
+                "Isle of Wight": { population: 38606, prisoners: 95, jobs: 15000 },
+                "Manassas Park": { population: 17219, prisoners: 40, jobs: 7000 },
+                "King and Queen": { population: 6945, prisoners: 15, jobs: 2500 },
+                "Bristol": { population: 17219, prisoners: 80, jobs: 8000 },
+                "Colonial Heights": { population: 18170, prisoners: 60, jobs: 8500 },
+                "Tazewell": { population: 40429, prisoners: 110, jobs: 17000 },
+                "Clarke": { population: 14783, prisoners: 30, jobs: 6000 },
+                "Halifax": { population: 33902, prisoners: 100, jobs: 13000 },
+                "Arlington": { population: 238643, prisoners: 200, jobs: 175000 },
+                "Surry": { population: 6561, prisoners: 20, jobs: 2800 },
+                "Warren": { population: 40727, prisoners: 90, jobs: 18000 },
+                "Washington": { population: 53935, prisoners: 130, jobs: 24000 },
+                "Wise": { population: 36130, prisoners: 250, jobs: 12000 },
+                "Winchester": { population: 28120, prisoners: 90, jobs: 15000 },
+                "Charles City": { population: 6773, prisoners: 18, jobs: 2500 },
+                "Page": { population: 23709, prisoners: 60, jobs: 10000 },
+                "Bland": { population: 6270, prisoners: 25, jobs: 2500 },
+                "Sussex": { population: 10829, prisoners: 40, jobs: 4000 },
+                "Lunenburg": { population: 12117, prisoners: 45, jobs: 4500 },
+                "Buchanan": { population: 20355, prisoners: 90, jobs: 7000 },
+                "Mecklenburg": { population: 30319, prisoners: 95, jobs: 12000 },
+                "Amelia": { population: 13265, prisoners: 35, jobs: 5000 },
+                "Gloucester": { population: 38711, prisoners: 85, jobs: 16000 },
+                "Shenandoah": { population: 44186, prisoners: 100, jobs: 20000 },
+                "Dickenson": { population: 14124, prisoners: 60, jobs: 5000 },
+                "Staunton": { population: 25750, prisoners: 70, jobs: 13000 },
+                "Floyd": { population: 15738, prisoners: 40, jobs: 6500 },
+                "Alleghany": { population: 15223, prisoners: 50, jobs: 6000 },
+                "Giles": { population: 16787, prisoners: 45, jobs: 7000 },
+                "Bath": { population: 4209, prisoners: 10, jobs: 2000 },
+                "Pittsylvania": { population: 60501, prisoners: 180, jobs: 25000 },
+                "Northampton": { population: 12282, prisoners: 30, jobs: 5000 },
+                "Culpeper": { population: 52552, prisoners: 110, jobs: 22000 },
+                "James City": { population: 78254, prisoners: 150, jobs: 38000 },
+                "Fauquier": { population: 72972, prisoners: 140, jobs: 30000 },
+                "Orange": { population: 36254, prisoners: 80, jobs: 15000 },
+                "Lynchburg": { population: 79009, prisoners: 250, jobs: 38000 },
+                "Campbell": { population: 55698, prisoners: 130, jobs: 23000 },
+                "Norfolk": { population: 238005, prisoners: 950, jobs: 110000 },
+                "Poquoson": { population: 12460, prisoners: 25, jobs: 5000 },
+                "Portsmouth": { population: 97915, prisoners: 400, jobs: 40000 },
+                "Chesterfield": { population: 352802, prisoners: 650, jobs: 150000 },
+                "Suffolk": { population: 94324, prisoners: 300, jobs: 38000 },
+                "Craig": { population: 5091, prisoners: 15, jobs: 2000 },
+                "Frederick": { population: 91419, prisoners: 180, jobs: 40000 },
+                "Chesapeake": { population: 249486, prisoners: 600, jobs: 100000 },
+                "Dinwiddie": { population: 27947, prisoners: 70, jobs: 11000 },
+                "Powhatan": { population: 30333, prisoners: 60, jobs: 12000 },
+                "Greensville": { population: 11391, prisoners: 50, jobs: 4500 },
+                "Hanover": { population: 109979, prisoners: 200, jobs: 48000 },
+                "Rockbridge": { population: 22650, prisoners: 55, jobs: 9000 },
+                "Spotsylvania": { population: 140032, prisoners: 280, jobs: 60000 },
+                "Stafford": { population: 156927, prisoners: 250, jobs: 65000 },
+                "Carroll": { population: 29155, prisoners: 75, jobs: 11000 },
+                "Newport News": { population: 186247, prisoners: 700, jobs: 85000 },
+                "Grayson": { population: 15333, prisoners: 45, jobs: 6000 },
+                "Accomack": { population: 33413, prisoners: 110, jobs: 15200 },
+                "Prince George": { population: 43010, prisoners: 100, jobs: 18000 },
+                "New Kent": { population: 22945, prisoners: 50, jobs: 9000 },
+                "Wythe": { population: 28290, prisoners: 70, jobs: 12000 },
+                "Patrick": { population: 17608, prisoners: 55, jobs: 7000 },
+                "Southampton": { population: 17996, prisoners: 60, jobs: 7500 },
+                "Charlotte": { population: 11529, prisoners: 30, jobs: 4500 },
+                "Rockingham": { population: 83757, prisoners: 115, jobs: 41000 },
+                "Williamsburg": { population: 15425, prisoners: 30, jobs: 9000 },
+                "Smyth": { population: 29800, prisoners: 90, jobs: 12000 },
+                "Middlesex": { population: 10625, prisoners: 25, jobs: 4500 },
+                "Alexandria": { population: 159467, prisoners: 200, jobs: 90000 },
+                "Brunswick": { population: 15849, prisoners: 50, jobs: 6000 },
+                "Fairfax": { population: 1150309, prisoners: 1050, jobs: 610000 },
+                "Manassas": { population: 42772, prisoners: 90, jobs: 20000 },
+                "Nottoway": { population: 15232, prisoners: 50, jobs: 6000 },
+                "Prince William": { population: 482204, prisoners: 500, jobs: 190000 },
+                "Russell": { population: 25781, prisoners: 80, jobs: 10000 },
+                "Buckingham": { population: 16824, prisoners: 55, jobs: 6500 },
+                "Augusta": { population: 77485, prisoners: 90, jobs: 30000 },
+                "Madison": { population: 13837, prisoners: 30, jobs: 5500 },
+                "Westmoreland": { population: 18477, prisoners: 45, jobs: 7000 },
+                "Lancaster": { population: 10919, prisoners: 25, jobs: 4500 },
+                "Essex": { population: 10599, prisoners: 28, jobs: 4000 },
+                "Bedford": { population: 79462, prisoners: 150, jobs: 32000 },
+                "Roanoke": { population: 100011, prisoners: 400, jobs: 52000 },
+                "Fredericksburg": { population: 27982, prisoners: 80, jobs: 15000 },
+                "Virginia Beach": { population: 459470, prisoners: 1200, jobs: 200000 },
+                "Nelson": { population: 14775, prisoners: 35, jobs: 6000 },
+                "Covington": { population: 5738, prisoners: 25, jobs: 2500 },
+                "Lee": { population: 22173, prisoners: 70, jobs: 8000 }
+            };
+
+            const metrics = [
+                { id: 'none', label: 'None (Default)', accessor: () => 0, format: d => 'N/A', scheme: d3.schemeGreys[9] },
+                { id: 'population', label: 'Total Population', accessor: d => d.population, format: d3.format(','), scheme: d3.schemeBlues[9] },
+                { id: 'prisoners', label: 'Total Prisoners', accessor: d => d.prisoners, format: d3.format(','), scheme: d3.schemeReds[9] },
+                { id: 'jobs', label: 'Total Jobs', accessor: d => d.jobs, format: d3.format(','), scheme: d3.schemeGreens[9] },
+                { id: 'prisoners_per_1k', label: 'Prisoners per 1k People', accessor: d => (d.prisoners / d.population) * 1000, format: d => d.toFixed(2), scheme: d3.schemePurples[9] },
+                { id: 'jobs_per_1k', label: 'Jobs per 1k People', accessor: d => (d.jobs / d.population) * 1000, format: d => d.toFixed(2), scheme: d3.schemeOranges[9] },
+            ];
+            let activeMetric = metrics[0];
+
+            // --- 2. D3 SETUP ---
+            const svg = d3.select("#map");
+            const width = svg.node().getBoundingClientRect().width;
+            const height = svg.node().getBoundingClientRect().height;
+            const path = d3.geoPath();
+            const g = svg.append("g");
+            const infoPanel = d3.select("#info-panel");
+            const resetButton = d3.select('#reset-zoom');
+
+            // Zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([1, 8])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+
+            svg.call(zoom);
+
+            // --- 3. DATA LOADING & MAP RENDERING ---
+            const dataUrl = "https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json";
+
+            d3.json(dataUrl).then(us => {
+                const va = { type: "FeatureCollection", features: topojson.feature(us, us.objects.counties).features.filter(d => d.id.startsWith("51")) };
+                
+                // Attach our data to the GeoJSON features
+                va.features.forEach(feature => {
+                    const data = countyData[feature.properties.name];
+                    if(data) {
+                        feature.properties.data = data;
+                    }
+                });
+
+                // Fit map to Virginia
+                const projection = d3.geoIdentity().reflectY(true);
+                const b = d3.geoPath(projection).bounds(va);
+                const s = 0.95 / Math.max((b[1][0] - b[0][0]) / width, (b[1][1] - b[0][1]) / height);
+                const t = [(width - s * (b[1][0] + b[0][0])) / 2, (height - s * (b[1][1] + b[0][1])) / 2];
+                projection.scale(s).translate(t);
+
+                path.projection(projection);
+
+                // Draw counties
+                g.selectAll(".county")
+                    .data(va.features)
+                    .enter().append("path")
+                    .attr("class", "county")
+                    .attr("d", path)
+                    .on("click", clicked)
+                    .call(updateMapColors);
+
+                // Add controls
+                const controls = d3.select("#controls");
+                metrics.forEach(metric => {
+                    const label = controls.append("label").attr("class", "flex items-center space-x-2 text-sm cursor-pointer");
+                    label.append("input")
+                        .attr("type", "radio")
+                        .attr("name", "metric")
+                        .attr("value", metric.id)
+                        .property("checked", metric.id === activeMetric.id)
+                        .on("change", (event) => {
+                            activeMetric = metrics.find(m => m.id === event.target.value);
+                            updateMapColors();
+                            updateLegend();
+                        });
+                    label.append("span").text(metric.label);
+                });
+                
+                updateLegend();
+            });
+
+            // --- 4. INTERACTIVITY FUNCTIONS ---
+            
+            function updateMapColors() {
+                const values = g.selectAll(".county").data()
+                    .map(d => d.properties.data ? activeMetric.accessor(d.properties.data) : null)
+                    .filter(d => d !== null && !isNaN(d));
+
+                // Use a quantile scale for better color distribution with skewed data.
+                // Quantile scales map data to buckets with an equal number of items.
+                const colorScale = d3.scaleQuantile()
+                    .domain(values)
+                    .range(activeMetric.scheme.slice(1)); // Use shades, not the lightest
+
+                g.selectAll(".county")
+                    .transition().duration(300)
+                    .attr("fill", d => {
+                        if (activeMetric.id !== 'none' && d.properties.data) {
+                            return colorScale(activeMetric.accessor(d.properties.data));
+                        }
+                        return activeMetric.scheme[0]; // Default light gray
+                    });
+            }
+            
+            function updateLegend() {
+                const legend = d3.select("#legend");
+                legend.html(""); // Clear previous legend
+
+                if (activeMetric.id === 'none') {
+                    legend.append("p").attr("class", "text-sm text-gray-500").text("No overlay selected.");
+                    return;
+                }
+
+                const values = g.selectAll(".county").data()
+                    .map(d => d.properties.data ? activeMetric.accessor(d.properties.data) : null)
+                    .filter(d => d !== null && !isNaN(d));
+
+                if (values.length === 0) {
+                     legend.append("p").attr("class", "text-sm text-gray-500").text("No data for this metric.");
+                     return;
+                }
+                const colorScale = d3.scaleQuantile()
+                    .domain(values)
+                    .range(activeMetric.scheme.slice(1));
+
+                const legendItems = legend.selectAll("div.legend-item")
+                    .data(colorScale.range())
+                    .enter().append("div")
+                    .attr("class", "legend-item flex items-center space-x-2");
+                
+                legendItems.append("div")
+                    .style("width", "18px")
+                    .style("height", "18px")
+                    .style("background-color", d => d)
+                    .attr("class", "rounded");
+
+                legendItems.append("span")
+                    .attr("class", "text-sm")
+                    .text(d => {
+                        const r = colorScale.invertExtent(d);
+                        return `${activeMetric.format(r[0])} - ${activeMetric.format(r[1])}`;
+                    });
+            }
+            
+            let active = d3.select(null);
+
+            function clicked(event, d) {
+                if (active.node() === this) return reset();
+                
+                active.classed("active", false);
+                active = d3.select(this).classed("active", true);
+
+                active.raise();
+
+                const [[x0, y0], [x1, y1]] = path.bounds(d);
+                event.stopPropagation();
+                
+                svg.transition().duration(750).call(
+                    zoom.transform,
+                    d3.zoomIdentity
+                        .translate(width / 2, height / 2)
+                        .scale(Math.min(8, 0.9 / Math.max((x1 - x0) / width, (y1 - y0) / height)))
+                        .translate(-(x0 + x1) / 2, -(y0 + y1) / 2),
+                    d3.pointer(event, svg.node())
+                );
+                
+                resetButton.classed('hidden', false);
+                updateInfoPanel(d.properties);
+            }
+
+            function reset() {
+                active.classed("active", false);
+                active = d3.select(null);
+                
+                svg.transition().duration(750).call(
+                    zoom.transform,
+                    d3.zoomIdentity
+                );
+                
+                resetButton.classed('hidden', true);
+                resetInfoPanel();
+            }
+
+            svg.on("click", reset);
+            resetButton.on('click', reset);
+
+            function updateInfoPanel(props) {
+                infoPanel.html(""); // Clear
+                
+                const data = props.data;
+                const header = infoPanel.append("div").attr("class", "pb-2 border-b");
+                header.append("h2").attr("class", "text-2xl font-bold text-gray-900").text(props.name);
+
+                const statsList = infoPanel.append("ul").attr("class", "mt-4 space-y-3");
+                
+                if (data) {
+                    metrics.slice(1).forEach(metric => { // Skip 'none'
+                        const li = statsList.append("li").attr("class", "flex justify-between items-baseline");
+                        li.append("span").attr("class", "font-medium text-gray-600").text(metric.label + ":");
+                        const value = metric.accessor(data);
+                        li.append("span").attr("class", "font-semibold text-lg text-indigo-600").text(metric.format(value));
+                    });
+                } else {
+                    statsList.append("p").attr("class", "text-center text-gray-500 bg-gray-50 p-4 rounded-lg").text("No statistical data available for this county.");
+                }
+            }
+
+            function resetInfoPanel() {
+                 infoPanel.html(`
+                    <div class="text-center p-4 border-2 border-dashed rounded-lg">
+                        <h2 class="text-lg font-semibold text-gray-700">Select a County</h2>
+                        <p class="text-sm text-gray-500">Click on the map to view detailed statistics here.</p>
+                    </div>
+                 `);
+            }
+        });
+    </script>
+</body>
+</html>
+
+
