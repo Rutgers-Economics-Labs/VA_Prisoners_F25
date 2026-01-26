@@ -1,0 +1,151 @@
+[
+  {
+    "region_id": 1,
+    "region_name": "Southwest Virginia",
+    "top_employers": [
+      "The Goodyear Tire & Rubber Company (Manufacturing)",
+      "Utility Trailer Manufacturing (Manufacturing)",
+      "Tempur Sealy (Manufacturing)",
+      "CGI (Information Tech)",
+      "Paramount Coal Company (Energy/Mining)"
+    ],
+    "training_programs": [
+      "Mountain Empire Community College (MECC): Welding & Industrial Electronics",
+      "Southwest Virginia Community College: FastForward Credentialing",
+      "VADOC Facilities: Red Onion State Prison"
+    ],
+    "policy_blurb": "Region 1 faces a unique 'Reentry Desert' challenge where high incarceration rates per capita collide with geographic isolation. While manufacturing jobs exist at hubs like Utility Trailer, they are often inaccessible to returnees living in remote coalfield communities without reliable transport. Policy efforts must prioritize funding for mobile training units (welding/HVAC labs on wheels) from Mountain Empire Community College to bridge this physical gap."
+  },
+  {
+    "region_id": 2,
+    "region_name": "New River Valley",
+    "top_employers": [
+      "Volvo Group New River Valley Plant (Transportation Mfg)",
+      "Cornerstone Building Brands (Materials Mfg)",
+      "SAIC (IT/Defense)",
+      "Carilion Clinic (Life Sciences)",
+      "Amazon Web Services (IT)"
+    ],
+    "training_programs": [
+      "New River Community College (NRCC): Advanced Manufacturing & Mechatronics",
+      "VADOC Facilities: Bland Correctional Center",
+      "New River/Mount Rogers Workforce Development Board"
+    ],
+    "policy_blurb": "The New River Valley offers a robust surplus of advanced manufacturing jobs, particularly with the Volvo Group's expansion. However, the 'Opportunity Gap' here is logistical, not economic. Returnees in rural Pulaski or Giles counties often lack the private vehicle ownership required to reach these 24/7 industrial shifts. We recommend immediate state investment in 'Wheels to Work' subsidies and dedicated shuttle services to connect release housing directly to the Dublin industrial corridor."
+  },
+  {
+    "region_id": 3,
+    "region_name": "Southern Virginia",
+    "top_employers": [
+      "The Goodyear Tire & Rubber Company (Advanced Mfg)",
+      "Danville Regional Medical Center (Healthcare)",
+      "Microsoft (Data Centers)",
+      "Morgan Olson (Automotive Mfg)",
+      "Essel Propack (Advanced Mfg)"
+    ],
+    "training_programs": [
+      "GO TEC (Great Opportunities in Technology and Engineering Careers)",
+      "Institute for Advanced Learning and Research (IALR)",
+      "VADOC Facilities: Green Rock Correctional Center"
+    ],
+    "policy_blurb": "Region 3 has successfully reinvented itself as a high-tech manufacturing hub via the Institute for Advanced Learning and Research (IALR). The critical missing link is a direct pipeline from VADOC facilities like Green Rock. Policy should focus on formalizing 'Pre-Release Apprenticeships' where inmates begin the nationally recognized GO TEC precision machining curriculum inside the prison, ensuring they graduate with the exact credentials local employers like Goodyear are desperate for."
+  },
+  {
+    "region_id": 4,
+    "region_name": "Richmond / Crater",
+    "top_employers": [
+      "VCU Health (Healthcare)",
+      "Capital One Financial (Finance/IT)",
+      "Dominion Energy (Energy)",
+      "HCA Virginia Health System (Healthcare)",
+      "Amazon Logistics (Warehousing)"
+    ],
+    "training_programs": [
+      "VADOC Facilities: Beaumont, State Farm, Sussex I & II",
+      "CCWA (Community College Workforce Alliance): Logistics & Manufacturing credentials"
+    ],
+    "policy_blurb": "As the state's highest-volume destination for returning citizens, Region 4's primary barrier is not job availability, but housing stability. The high cost of rent in the Richmond Metro area pushes returnees into unstable living situations that make holding a job impossible. We strongly recommend a 'Housing-First' workforce model, where employment services are co-located with rapid-rehousing programs to stabilize the workforce before training begins."
+  },
+  {
+    "region_id": 5,
+    "region_name": "Hampton Roads",
+    "top_employers": [
+      "Newport News Shipbuilding (HII) (Manufacturing/Defense)",
+      "Sentara Healthcare (Health)",
+      "NASA Langley Research Center (Aerospace)",
+      "Sera-Brynn (Cybersecurity)",
+      "Port of Virginia (Logistics)"
+    ],
+    "training_programs": [
+      "VADOC Facilities: Deerfield, Indian Creek, St. Brides",
+      "Tidewater Community College: Maritime welding and pipefitting"
+    ],
+    "policy_blurb": "Hampton Roads offers the highest wage potential in the state via the maritime and defense sectors, but these roles are often gated by strict security clearance requirements (TWIC cards). This creates a 'false positive' in opportunity data. The urgent policy need here is funding for specialized legal clinics that help qualified non-violent offenders navigate the TWIC appeal process and seal eligible records to unlock these high-paying shipyard careers."
+  },
+  {
+    "region_id": 6,
+    "region_name": "Mary Ball Washington",
+    "top_employers": [
+      "WestRock (Manufacturing)",
+      "Ballard Fish & Oyster Co. (Aquaculture)",
+      "Smurfit Westrock (Paper/Forestry)",
+      "World Class Distribution (Logistics)",
+      "Riverside Health System (Healthcare)"
+    ],
+    "training_programs": [
+      "VADOC Facilities: Haynesville Correctional Center",
+      "Rappahannock Community College: Diesel mechanics and aquaculture programs"
+    ],
+    "policy_blurb": "Region 6's rural-coastal economy relies heavily on aquaculture and forestry, sectors that are distinct from the rest of the state. Generic computer literacy programs are less effective here than targeted agricultural credentials. We recommend expanding VADOC partnerships with local employers like Ballard Fish & Oyster to create 'field-based' work release programs that align directly with the region's unique natural resource economy."
+  },
+  {
+    "region_id": 7,
+    "region_name": "Northern Virginia",
+    "top_employers": [
+      "Amazon (Tech/Logistics)",
+      "Booz Allen Hamilton (Consulting/Engineering)",
+      "Leidos (Cybersecurity)",
+      "Inova Center for Personalized Health (Healthcare)",
+      "General Dynamics (Defense)"
+    ],
+    "training_programs": [
+      "Community College FastForward: G3 workforce credentials in IT and Cyber",
+      "Northern Virginia Community College (NOVA): Data Center Operations"
+    ],
+    "policy_blurb": "Northern Virginia presents a severe mismatch: it has the most jobs but the highest barriers to entry (security clearances and extreme cost of living). For the reentry population, the 'Opportunity Gap' is misleadingly high. Policy should avoid pushing returnees toward clearance-heavy defense roles and instead subsidize training for the booming Data Center Operations sector, where technician roles often do not require the same level of federal clearance."
+  },
+  {
+    "region_id": 8,
+    "region_name": "Shenandoah Valley",
+    "top_employers": [
+      "Augusta Lumber Co. (Agriculture/Forestry)",
+      "HP Hood (Food Mfg)",
+      "Merck (Life Science/Mfg)",
+      "Amazon (Logistics)",
+      "Shentel (Telecommunications)"
+    ],
+    "training_programs": [
+      "Blue Ridge Community College: Advanced Manufacturing",
+      "VADOC Facilities: Augusta Correctional Center",
+      "Shenandoah Valley Workforce Development Board"
+    ],
+    "policy_blurb": "The Shenandoah Valley is a standout success story for 'Second Chance' hiring, driven by a cluster of major food manufacturers (Hershey, McKee, HP Hood) willing to hire ex-offenders. Policy here should simply 'grease the wheels' by streamlining the pipeline. We recommend establishing a regional 'Fair Chance Business Council' to formalize these hiring practices and share success stories to recruit smaller employers into the network."
+  },
+  {
+    "region_id": 9,
+    "region_name": "Piedmont Opportunity Corridor",
+    "top_employers": [
+      "University of Virginia (Education/Biotech)",
+      "Afton Scientific (Light Manufacturing)",
+      "Papa Weaver's Pork, Inc. (Food Mfg)",
+      "Firefly Fiber Broadband (IT/Comms)",
+      "Atlantic Union Bank (Finance)"
+    ],
+    "training_programs": [
+      "Region 9 Internship Collaborative",
+      "VADOC Facilities: Fluvanna Correctional Center for Women",
+      "Piedmont Virginia Community College (PVCC): Network2Work"
+    ],
+    "policy_blurb": "Region 9 benefits from the innovative 'Network2Work' program, which uses community peers to connect job seekers with training and childcare. The key recommendation is to scale this model specifically for the release population at Fluvanna Correctional Center for Women. By connecting female returnees to the vast UVA Health and facilities ecosystem, we can create a sustainable path out of poverty for this specific demographic."
+  }
+]

@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virginia Economic Opportunity Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; overscroll-behavior: none; }
+        /* Map Styles */
+        .map-path { stroke: #fff; stroke-width: 0.5px; cursor: pointer; transition: fill 0.3s ease; }
+        .map-path:hover { fill-opacity: 0.8; stroke: #333; }
+        .map-path.active { stroke: #fbbf24; stroke-width: 3px; z-index: 100; }
+        /* Region specific styles */
+        .region-border { fill: none; stroke: #000; stroke-width: 1px; pointer-events: none; }
+        html, body { overflow: hidden; height: 100%; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col h-screen antialiased">
+
+    <nav class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center gap-4">
+            <div class="bg-blue-900 text-white font-bold p-2 rounded">VA-MAP</div>
+            <div>
+                <h1 class="text-xl font-bold text-slate-900 hidden md:block">Economic Opportunity Map</h1>
+                <p class="text-xs text-slate-500 hidden md:block leading-none">2025-2030 Research Data</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div class="bg-slate-100 p-1 rounded-lg flex text-sm font-medium mr-2">
+                <button id="btn-county" class="px-3 py-1.5 rounded-md bg-white shadow-sm text-slate-900 text-xs font-semibold transition-all">
+                    County
+                </button>
+                <button id="btn-region" class="px-3 py-1.5 rounded-md text-slate-500 hover:text-slate-900 text-xs font-semibold transition-all">
+                    Region
+                </button>
+            </div>
+
+            <div class="h-6 w-px bg-slate-200 mx-2"></div> <a href="resources.html" class="flex items-center text-slate-500 hover:text-blue-600 font-medium transition text-sm">
+                Action Hub &rarr;
+            </a>
+        </div>
+    </nav>
+
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+        
+        <aside class="w-full md:w-80 lg:w-96 bg-white border-r border-slate-200 z-10 flex flex-col h-full">
+            <div class="p-6 flex-1 overflow-y-auto">
+                
+                <div id="info-panel" class="mb-6">
+                    <div class="text-center p-6 border-2 border-dashed border-slate-300 rounded-lg bg-slate-50">
+                        <h2 class="text-lg font-semibold text-slate-700">Select an Area</h2>
+                        <p class="text-sm text-slate-500 mt-1">Click a county or region on the map to view statistics.</p>
+                    </div>
+                </div>
+
+                <hr class="border-slate-200 my-4">
+
+                <div>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Data Overlay</h3>
+                    <div id="controls" class="space-y-2">
+                        </div>
+                </div>
+
+                <hr class="border-slate-200 my-4">
+                
+                <div>
+                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Legend</h3>
+                     <div id="legend" class="w-full"></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 bg-slate-200 relative">
+            <svg id="map" class="w-full h-full"></svg>
+            <button id="reset-zoom" class="absolute top-4 right-4 bg-white text-slate-700 px-4 py-2 rounded shadow-md text-sm font-bold hover:bg-slate-50 transition opacity-0 pointer-events-none">Reset Zoom</button>
+        </main>
+
+    </div>
+
+    <script>
+        // --- 1. DATASETS ---
+
+        // REAL QCEW JOB DATA (From your Python Analysis)
+        const countyJobData = {
+            "Accomack": { jobs: 944, total_jobs: 13143, share: 7.2, top_sector: "Construction" },
+            "Albemarle": { jobs: 8613, total_jobs: 64804, share: 13.3, top_sector: "Construction" },
+            "Alexandria city": { jobs: 9291, total_jobs: 81327, share: 11.4, top_sector: "Construction" },
+            "Alleghany": { jobs: 366, total_jobs: 3292, share: 11.1, top_sector: "Transportation/Logistics" },
+            "Amelia": { jobs: 769, total_jobs: 2518, share: 30.5, top_sector: "Construction" },
+            "Amherst": { jobs: 989, total_jobs: 8167, share: 12.1, top_sector: "Construction" },
+            "Appomattox": { jobs: 489, total_jobs: 3602, share: 13.6, top_sector: "Construction" },
+            "Arlington": { jobs: 29796, total_jobs: 179174, share: 16.6, top_sector: "Transportation/Logistics" },
+            "Augusta": { jobs: 7879, total_jobs: 29812, share: 26.4, top_sector: "Construction" },
+            "Bath": { jobs: 206, total_jobs: 2231, share: 9.2, top_sector: "Construction" },
+            "Bedford": { jobs: 3914, total_jobs: 18599, share: 21.0, top_sector: "Construction" },
+            "Bland": { jobs: 81, total_jobs: 1942, share: 4.2, top_sector: "Transportation/Logistics" },
+            "Botetourt": { jobs: 1875, total_jobs: 11726, share: 16.0, top_sector: "Construction" },
+            "Bristol city": { jobs: 2102, total_jobs: 10360, share: 20.3, top_sector: "Transportation/Logistics" },
+            "Brunswick": { jobs: 939, total_jobs: 3308, share: 28.4, top_sector: "Transportation/Logistics" },
+            "Buchanan": { jobs: 390, total_jobs: 6041, share: 6.5, top_sector: "Transportation/Logistics" },
+            "Buckingham": { jobs: 715, total_jobs: 3109, share: 23.0, top_sector: "Construction" },
+            "Buena Vista city": { jobs: 36, total_jobs: 2510, share: 1.4, top_sector: "Transportation/Logistics" },
+            "Campbell": { jobs: 4906, total_jobs: 18466, share: 26.6, top_sector: "Construction" },
+            "Caroline": { jobs: 1256, total_jobs: 6593, share: 19.1, top_sector: "Construction" },
+            "Carroll": { jobs: 798, total_jobs: 5796, share: 13.8, top_sector: "Construction" },
+            "Charles City": { jobs: 655, total_jobs: 1782, share: 36.8, top_sector: "Construction" },
+            "Charlotte": { jobs: 816, total_jobs: 2736, share: 29.8, top_sector: "Manufacturing" },
+            "Charlottesville city": { jobs: 3614, total_jobs: 36665, share: 9.9, top_sector: "Construction" },
+            "Chesapeake city": { jobs: 35516, total_jobs: 104628, share: 33.9, top_sector: "Construction" },
+            "Chesterfield": { jobs: 36902, total_jobs: 145825, share: 25.3, top_sector: "Construction" },
+            "Clarke": { jobs: 550, total_jobs: 3866, share: 14.2, top_sector: "Construction" },
+            "Colonial Heights city": { jobs: 1109, total_jobs: 9684, share: 11.5, top_sector: "Construction" },
+            "Covington city": { jobs: 188, total_jobs: 3725, share: 5.0, top_sector: "Construction" },
+            "Craig": { jobs: 83, total_jobs: 760, share: 10.9, top_sector: "Construction" },
+            "Culpeper": { jobs: 3110, total_jobs: 16363, share: 19.0, top_sector: "Construction" },
+            "Cumberland": { jobs: 203, total_jobs: 1443, share: 14.1, top_sector: "Construction" },
+            "Danville city": { jobs: 2106, total_jobs: 24828, share: 8.5, top_sector: "Construction" },
+            "Dickenson": { jobs: 665, total_jobs: 3387, share: 19.6, top_sector: "Transportation/Logistics" },
+            "Dinwiddie": { jobs: 8254, total_jobs: 10324, share: 79.9, top_sector: "Transportation/Logistics" },
+            "Emporia city": { jobs: 150, total_jobs: 3366, share: 4.5, top_sector: "Construction" },
+            "Essex": { jobs: 204, total_jobs: 3545, share: 5.8, top_sector: "Construction" },
+            "Fairfax": { jobs: 87598, total_jobs: 636143, share: 13.8, top_sector: "Construction" },
+            "Fairfax city": { jobs: 1711, total_jobs: 24143, share: 7.1, top_sector: "Construction" },
+            "Falls Church city": { jobs: 1179, total_jobs: 12426, share: 9.5, top_sector: "Construction" },
+            "Fauquier": { jobs: 8207, total_jobs: 23762, share: 34.5, top_sector: "Construction" },
+            "Floyd": { jobs: 614, total_jobs: 3761, share: 16.3, top_sector: "Construction" },
+            "Fluvanna": { jobs: 940, total_jobs: 4854, share: 19.4, top_sector: "Construction" },
+            "Franklin": { jobs: 4137, total_jobs: 15633, share: 26.5, top_sector: "Construction" },
+            "Franklin city": { jobs: 300, total_jobs: 3984, share: 7.5, top_sector: "Construction" },
+            "Frederick": { jobs: 17471, total_jobs: 39458, share: 44.3, top_sector: "Transportation/Logistics" },
+            "Fredericksburg city": { jobs: 1968, total_jobs: 24807, share: 7.9, top_sector: "Construction" },
+            "Galax city": { jobs: 228, total_jobs: 5800, share: 3.9, top_sector: "Construction" },
+            "Giles": { jobs: 334, total_jobs: 5894, share: 5.7, top_sector: "Construction" },
+            "Gloucester": { jobs: 1470, total_jobs: 10096, share: 14.6, top_sector: "Construction" },
+            "Goochland": { jobs: 2406, total_jobs: 18653, share: 12.9, top_sector: "Construction" },
+            "Grayson": { jobs: 197, total_jobs: 3414, share: 5.8, top_sector: "Transportation/Logistics" },
+            "Greene": { jobs: 719, total_jobs: 4050, share: 17.8, top_sector: "Construction" },
+            "Greensville": { jobs: 95, total_jobs: 3806, share: 2.5, top_sector: "Transportation/Logistics" },
+            "Halifax": { jobs: 2315, total_jobs: 11832, share: 19.6, top_sector: "Construction" },
+            "Hampton city": { jobs: 7658, total_jobs: 50122, share: 15.3, top_sector: "Construction" },
+            "Hanover": { jobs: 18362, total_jobs: 59534, share: 30.8, top_sector: "Construction" },
+            "Harrisonburg city": { jobs: 7684, total_jobs: 31032, share: 24.8, top_sector: "Manufacturing" },
+            "Henrico": { jobs: 35006, total_jobs: 187202, share: 18.7, top_sector: "Construction" },
+            "Henry": { jobs: 6207, total_jobs: 15710, share: 39.5, top_sector: "Transportation/Logistics" },
+            "Highland": { jobs: 123, total_jobs: 615, share: 20.0, top_sector: "Construction" },
+            "Hopewell city": { jobs: 264, total_jobs: 7254, share: 3.6, top_sector: "Construction" },
+            "Isle of Wight": { jobs: 1970, total_jobs: 10060, share: 19.6, top_sector: "Manufacturing" },
+            "James City": { jobs: 3123, total_jobs: 30136, share: 10.4, top_sector: "Construction" },
+            "King George": { jobs: 748, total_jobs: 13783, share: 5.4, top_sector: "Construction" },
+            "King William": { jobs: 403, total_jobs: 4199, share: 9.6, top_sector: "Construction" },
+            "King and Queen": { jobs: 298, total_jobs: 1114, share: 26.8, top_sector: "Transportation/Logistics" },
+            "Lancaster": { jobs: 641, total_jobs: 4793, share: 13.4, top_sector: "Construction" },
+            "Lee": { jobs: 338, total_jobs: 4188, share: 8.1, top_sector: "Transportation/Logistics" },
+            "Lexington city": { jobs: 181, total_jobs: 5376, share: 3.4, top_sector: "Transportation/Logistics" },
+            "Loudoun": { jobs: 86022, total_jobs: 197937, share: 43.5, top_sector: "Construction" },
+            "Louisa": { jobs: 1834, total_jobs: 10204, share: 18.0, top_sector: "Construction" },
+            "Lunenburg": { jobs: 288, total_jobs: 2358, share: 12.2, top_sector: "Construction" },
+            "Lynchburg city": { jobs: 7279, total_jobs: 47662, share: 15.3, top_sector: "Manufacturing" },
+            "Madison": { jobs: 829, total_jobs: 3090, share: 26.8, top_sector: "Construction" },
+            "Manassas Park city": { jobs: 2042, total_jobs: 3727, share: 54.8, top_sector: "Construction" },
+            "Manassas city": { jobs: 5356, total_jobs: 24839, share: 21.6, top_sector: "Construction" },
+            "Martinsville city": { jobs: 294, total_jobs: 9235, share: 3.2, top_sector: "Transportation/Logistics" },
+            "Mathews": { jobs: 267, total_jobs: 1577, share: 16.9, top_sector: "Construction" },
+            "Mecklenburg": { jobs: 1129, total_jobs: 11728, share: 9.6, top_sector: "Construction" },
+            "Middlesex": { jobs: 594, total_jobs: 3388, share: 17.5, top_sector: "Construction" },
+            "Montgomery": { jobs: 7346, total_jobs: 43167, share: 17.0, top_sector: "Manufacturing" },
+            "Nelson": { jobs: 1263, total_jobs: 3979, share: 31.7, top_sector: "Manufacturing" },
+            "New Kent": { jobs: 1105, total_jobs: 6055, share: 18.2, top_sector: "Construction" },
+            "Newport News city": { jobs: 16005, total_jobs: 102294, share: 15.6, top_sector: "Construction" },
+            "Norfolk city": { jobs: 32536, total_jobs: 144212, share: 22.6, top_sector: "Transportation/Logistics" },
+            "Northampton": { jobs: 826, total_jobs: 4557, share: 18.1, top_sector: "Transportation/Logistics" },
+            "Northumberland": { jobs: 938, total_jobs: 2392, share: 39.2, top_sector: "Manufacturing" },
+            "Norton city": { jobs: 101, total_jobs: 3064, share: 3.3, top_sector: "Construction" },
+            "Nottoway": { jobs: 298, total_jobs: 5409, share: 5.5, top_sector: "Construction" },
+            "Orange": { jobs: 1239, total_jobs: 9592, share: 12.9, top_sector: "Construction" },
+            "Page": { jobs: 599, total_jobs: 5536, share: 10.8, top_sector: "Construction" },
+            "Patrick": { jobs: 600, total_jobs: 4110, share: 14.6, top_sector: "Manufacturing" },
+            "Petersburg city": { jobs: 618, total_jobs: 11748, share: 5.3, top_sector: "Transportation/Logistics" },
+            "Pittsylvania": { jobs: 2925, total_jobs: 12860, share: 22.7, top_sector: "Construction" },
+            "Poquoson city": { jobs: 166, total_jobs: 1861, share: 8.9, top_sector: "Construction" },
+            "Portsmouth city": { jobs: 37422, total_jobs: 43565, share: 85.9, top_sector: "Manufacturing" },
+            "Powhatan": { jobs: 2638, total_jobs: 8323, share: 31.7, top_sector: "Construction" },
+            "Prince Edward": { jobs: 323, total_jobs: 8733, share: 3.7, top_sector: "Construction" },
+            "Prince George": { jobs: 3212, total_jobs: 14947, share: 21.5, top_sector: "Transportation/Logistics" },
+            "Prince William": { jobs: 43720, total_jobs: 143184, share: 30.5, top_sector: "Construction" },
+            "Pulaski": { jobs: 3851, total_jobs: 14996, share: 25.7, top_sector: "Transportation/Logistics" },
+            "Radford city": { jobs: 1661, total_jobs: 5991, share: 27.7, top_sector: "Manufacturing" },
+            "Rappahannock": { jobs: 376, total_jobs: 1524, share: 24.7, top_sector: "Construction" },
+            "Richmond": { jobs: 196, total_jobs: 2727, share: 7.2, top_sector: "Construction" },
+            "Richmond city": { jobs: 26466, total_jobs: 165801, share: 16.0, top_sector: "Construction" },
+            "Roanoke": { jobs: 5020, total_jobs: 37417, share: 13.4, top_sector: "Construction" },
+            "Roanoke city": { jobs: 15253, total_jobs: 65647, share: 23.2, top_sector: "Construction" },
+            "Rockbridge": { jobs: 752, total_jobs: 6108, share: 12.3, top_sector: "Construction" },
+            "Rockingham": { jobs: 19011, total_jobs: 35040, share: 54.3, top_sector: "Manufacturing" },
+            "Russell": { jobs: 1458, total_jobs: 6146, share: 23.7, top_sector: "Construction" },
+            "Salem city": { jobs: 2513, total_jobs: 20490, share: 12.3, top_sector: "Construction" },
+            "Scott": { jobs: 265, total_jobs: 4975, share: 5.3, top_sector: "Transportation/Logistics" },
+            "Shenandoah": { jobs: 2162, total_jobs: 13476, share: 16.0, top_sector: "Construction" },
+            "Smyth": { jobs: 1834, total_jobs: 11649, share: 15.7, top_sector: "Manufacturing" },
+            "Southampton": { jobs: 232, total_jobs: 3585, share: 6.5, top_sector: "Transportation/Logistics" },
+            "Spotsylvania": { jobs: 6323, total_jobs: 37849, share: 16.7, top_sector: "Construction" },
+            "Stafford": { jobs: 7940, total_jobs: 46074, share: 17.2, top_sector: "Construction" },
+            "Staunton city": { jobs: 1339, total_jobs: 11438, share: 11.7, top_sector: "Construction" },
+            "Suffolk city": { jobs: 6990, total_jobs: 36382, share: 19.2, top_sector: "Construction" },
+            "Surry": { jobs: 187, total_jobs: 2173, share: 8.6, top_sector: "Construction" },
+            "Sussex": { jobs: 368, total_jobs: 3214, share: 11.4, top_sector: "Transportation/Logistics" },
+            "Tazewell": { jobs: 1962, total_jobs: 13701, share: 14.3, top_sector: "Manufacturing" },
+            "Virginia Beach city": { jobs: 26644, total_jobs: 178763, share: 14.9, top_sector: "Construction" },
+            "Warren": { jobs: 2834, total_jobs: 13380, share: 21.2, top_sector: "Transportation/Logistics" },
+            "Washington": { jobs: 5723, total_jobs: 20401, share: 28.1, top_sector: "Manufacturing" },
+            "Waynesboro city": { jobs: 1205, total_jobs: 9503, share: 12.7, top_sector: "Transportation/Logistics" },
+            "Westmoreland": { jobs: 340, total_jobs: 3217, share: 10.6, top_sector: "Construction" },
+            "Williamsburg city": { jobs: 529, total_jobs: 11821, share: 4.5, top_sector: "Construction" },
+            "Winchester city": { jobs: 1687, total_jobs: 24918, share: 6.8, top_sector: "Construction" },
+            "Wise": { jobs: 959, total_jobs: 10968, share: 8.7, top_sector: "Construction" },
+            "Wythe": { jobs: 3570, total_jobs: 11573, share: 30.8, top_sector: "Manufacturing" },
+            "York": { jobs: 3357, total_jobs: 22145, share: 15.2, top_sector: "Construction" },
+        };
+
+        // Your existing County Data (Mock)
+        const countyMockData = {
+            "Accomack": { pop: 33413, prisoners: 67 },
+            "Albemarle": { pop: 112395, prisoners: 89 },
+            "Alleghany": { pop: 15223, prisoners: 41 },
+            "Amelia": { pop: 13265, prisoners: 25 },
+            "Amherst": { pop: 31307, prisoners: 66 },
+            "Appomattox": { pop: 16119, prisoners: 34 },
+            "Arlington": { pop: 238643, prisoners: 50 },
+            "Augusta": { pop: 77487, prisoners: 155 },
+            "Bath": { pop: 4209, prisoners: 4 },
+            "Bedford": { pop: 79462, prisoners: 98 },
+            "Bland": { pop: 6270, prisoners: 6 },
+            "Botetourt": { pop: 33596, prisoners: 36 },
+            "Brunswick": { pop: 15849, prisoners: 51 },
+            "Buchanan": { pop: 20355, prisoners: 75 },
+            "Buckingham": { pop: 16824, prisoners: 40 },
+            "Campbell": { pop: 55696, prisoners: 117 },
+            "Caroline": { pop: 30887, prisoners: 65 },
+            "Carroll": { pop: 29155, prisoners: 58 },
+            "Charles City": { pop: 6773, prisoners: 15 },
+            "Charlotte": { pop: 11529, prisoners: 28 },
+            "Chesterfield": { pop: 364548, prisoners: 360 },
+            "Clarke": { pop: 14783, prisoners: 7 },
+            "Craig": { pop: 4892, prisoners: 3 },
+            "Culpeper": { pop: 52552, prisoners: 91 },
+            "Cumberland": { pop: 9675, prisoners: 19 },
+            "Dickenson": { pop: 14124, prisoners: 48 },
+            "Dinwiddie": { pop: 27947, prisoners: 61 },
+            "Essex": { pop: 10599, prisoners: 28 },
+            "Fairfax": { pop: 1150309, prisoners: 279 },
+            "Fauquier": { pop: 72972, prisoners: 57 },
+            "Floyd": { pop: 15476, prisoners: 25 },
+            "Fluvanna": { pop: 27249, prisoners: 29 },
+            "Franklin": { pop: 54477, prisoners: 94 },
+            "Frederick": { pop: 91419, prisoners: 61 },
+            "Giles": { pop: 16787, prisoners: 38 },
+            "Gloucester": { pop: 38711, prisoners: 76 },
+            "Goochland": { pop: 24727, prisoners: 18 },
+            "Grayson": { pop: 15333, prisoners: 30 },
+            "Greene": { pop: 20552, prisoners: 28 },
+            "Greensville": { pop: 11391, prisoners: 26 },
+            "Halifax": { pop: 34022, prisoners: 101 },
+            "Hanover": { pop: 109979, prisoners: 89 },
+            "Henrico": { pop: 334389, prisoners: 542 },
+            "Henry": { pop: 50948, prisoners: 166 },
+            "Highland": { pop: 2232, prisoners: 0 },
+            "Isle of Wight": { pop: 38606, prisoners: 57 },
+            "James City": { pop: 78254, prisoners: 82 },
+            "King and Queen": { pop: 6608, prisoners: 12 },
+            "King George": { pop: 26723, prisoners: 43 },
+            "King William": { pop: 17810, prisoners: 24 },
+            "Lancaster": { pop: 10919, prisoners: 18 },
+            "Lee": { pop: 22173, prisoners: 78 },
+            "Loudoun": { pop: 420959, prisoners: 106 },
+            "Louisa": { pop: 37596, prisoners: 70 },
+            "Lunenburg": { pop: 11936, prisoners: 28 },
+            "Madison": { pop: 13837, prisoners: 21 },
+            "Mathews": { pop: 8533, prisoners: 17 },
+            "Mecklenburg": { pop: 30319, prisoners: 98 },
+            "Middlesex": { pop: 10625, prisoners: 17 },
+            "Montgomery": { pop: 99721, prisoners: 100 },
+            "Nelson": { pop: 14775, prisoners: 27 },
+            "New Kent": { pop: 22945, prisoners: 22 },
+            "Northampton": { pop: 12282, prisoners: 31 },
+            "Northumberland": { pop: 11839, prisoners: 15 },
+            "Nottoway": { pop: 15642, prisoners: 44 },
+            "Orange": { pop: 36254, prisoners: 65 },
+            "Page": { pop: 23709, prisoners: 71 },
+            "Patrick": { pop: 17608, prisoners: 43 },
+            "Pittsylvania": { pop: 60501, prisoners: 143 },
+            "Powhatan": { pop: 30333, prisoners: 19 },
+            "Prince Edward": { pop: 21849, prisoners: 39 },
+            "Prince George": { pop: 43010, prisoners: 40 },
+            "Prince William": { pop: 482204, prisoners: 292 },
+            "Pulaski": { pop: 33800, prisoners: 111 },
+            "Rappahannock": { pop: 7348, prisoners: 7 },
+            "Richmond": { pop: 8923, prisoners: 15 },
+            "Roanoke": { pop: 96929, prisoners: 96 },
+            "Rockbridge": { pop: 22650, prisoners: 56 },
+            "Rockingham": { pop: 83757, prisoners: 128 },
+            "Russell": { pop: 25781, prisoners: 80 },
+            "Scott": { pop: 21576, prisoners: 39 },
+            "Shenandoah": { pop: 44186, prisoners: 62 },
+            "Smyth": { pop: 29800, prisoners: 91 },
+            "Southampton": { pop: 17996, prisoners: 45 },
+            "Spotsylvania": { pop: 140032, prisoners: 204 },
+            "Stafford": { pop: 156927, prisoners: 187 },
+            "Surry": { pop: 6561, prisoners: 12 },
+            "Sussex": { pop: 10829, prisoners: 22 },
+            "Tazewell": { pop: 40429, prisoners: 133 },
+            "Warren": { pop: 40727, prisoners: 62 },
+            "Washington": { pop: 53935, prisoners: 122 },
+            "Westmoreland": { pop: 18477, prisoners: 46 },
+            "Wise": { pop: 36130, prisoners: 98 },
+            "Wythe": { pop: 28290, prisoners: 70 },
+            "York": { pop: 70045, prisoners: 48 },
+            "Alexandria city": { pop: 159467, prisoners: 67 },
+            "Bristol city": { pop: 17219, prisoners: 69 },
+            "Buena Vista city": { pop: 6641, prisoners: 16 },
+            "Charlottesville city": { pop: 46553, prisoners: 71 },
+            "Chesapeake city": { pop: 249422, prisoners: 459 },
+            "Colonial Heights city": { pop: 18170, prisoners: 23 },
+            "Covington city": { pop: 5737, prisoners: 26 },
+            "Danville city": { pop: 42590, prisoners: 204 },
+            "Emporia city": { pop: 5766, prisoners: 26 },
+            "Fairfax city": { pop: 24146, prisoners: 9 },
+            "Falls Church city": { pop: 14658, prisoners: 1 },
+            "Franklin city": { pop: 8180, prisoners: 39 },
+            "Fredericksburg city": { pop: 27982, prisoners: 72 },
+            "Galax city": { pop: 6720, prisoners: 22 },
+            "Hampton city": { pop: 137148, prisoners: 308 },
+            "Harrisonburg city": { pop: 51814, prisoners: 100 },
+            "Hopewell city": { pop: 23033, prisoners: 95 },
+            "Lexington city": { pop: 7320, prisoners: 4 },
+            "Lynchburg city": { pop: 79009, prisoners: 194 },
+            "Manassas city": { pop: 42772, prisoners: 43 },
+            "Manassas Park city": { pop: 17219, prisoners: 12 },
+            "Martinsville city": { pop: 13485, prisoners: 73 },
+            "Newport News city": { pop: 186247, prisoners: 399 },
+            "Norfolk city": { pop: 238005, prisoners: 803 },
+            "Norton city": { pop: 3687, prisoners: 14 },
+            "Petersburg city": { pop: 33458, prisoners: 168 },
+            "Poquoson city": { pop: 12460, prisoners: 7 },
+            "Portsmouth city": { pop: 97915, prisoners: 393 },
+            "Radford city": { pop: 16070, prisoners: 24 },
+            "Richmond city": { pop: 226610, prisoners: 756 },
+            "Roanoke city": { pop: 100011, prisoners: 316 },
+            "Salem city": { pop: 25346, prisoners: 36 },
+            "Staunton city": { pop: 25750, prisoners: 74 },
+            "Suffolk city": { pop: 94324, prisoners: 241 },
+            "Virginia Beach city": { pop: 459470, prisoners: 552 },
+            "Waynesboro city": { pop: 22196, prisoners: 73 },
+            "Williamsburg city": { pop: 15425, prisoners: 19 },
+            "Winchester city": { pop: 28120, prisoners: 46 },
+        };
+
+        // --- 2. CONFIG: Region Mapping & Recalculation ---
+
+        // Crosswalk: Simple mapping of key counties to regions to ensure the merge works
+        function getRegionID(countyName) {
+            const map = {
+                "Lee":1,"Scott":1,"Wise":1,"Dickenson":1,"Buchanan":1,"Russell":1,"Tazewell":1,"Smyth":1,"Washington":1,"Bristol city":1,"Norton city":1,
+                "Bland":2,"Wythe":2,"Grayson":2,"Carroll":2,"Pulaski":2,"Montgomery":2,"Giles":2,"Floyd":2,"Radford city":2,"Galax city":2,"Roanoke":2,"Roanoke city":2,"Salem city":2,"Botetourt":2,"Craig":2,"Alleghany":2,"Covington city":2,
+                "Patrick":3,"Henry":3,"Franklin":3,"Pittsylvania":3,"Halifax":3,"Mecklenburg":3,"Brunswick":3,"Martinsville city":3,"Danville city":3,"Amelia":3,"Nottoway":3,"Lunenburg":3,"Prince Edward":3,"Charlotte":3,"Buckingham":3,"Cumberland":3,
+                "Greensville":4,"Sussex":4,"Surry":4,"Prince George":4,"Dinwiddie":4,"Chesterfield":4,"Henrico":4,"Hanover":4,"Goochland":4,"Powhatan":4,"New Kent":4,"Charles City":4,"Hopewell city":4,"Petersburg city":4,"Colonial Heights city":4,"Richmond city":4,"Emporia city":4,
+                "James City":5,"York":5,"Gloucester":5,"Isle of Wight":5,"Suffolk city":5,"Chesapeake city":5,"Virginia Beach city":5,"Norfolk city":5,"Portsmouth city":5,"Hampton city":5,"Newport News city":5,"Williamsburg city":5,"Poquoson city":5,"Southampton":5,"Franklin city":5,
+                "Westmoreland":6,"Northumberland":6,"Richmond":6,"Lancaster":6,"Essex":6,"Middlesex":6,"Mathews":6,"King George":6,"Caroline":6,"King William":6,"King and Queen":6,"Spotsylvania":6,"Stafford":6,"Fredericksburg city":6,
+                "Fairfax":7,"Arlington":7,"Prince William":7,"Loudoun":7,"Fauquier":7,"Alexandria city":7,"Falls Church city":7,"Manassas city":7,"Manassas Park city":7,"Fairfax city":7,
+                "Clarke":8,"Frederick":8,"Warren":8,"Shenandoah":8,"Page":8,"Rockingham":8,"Augusta":8,"Highland":8,"Bath":8,"Rockbridge":8,"Winchester city":8,"Harrisonburg city":8,"Staunton city":8,"Waynesboro city":8,"Lexington city":8,"Buena Vista city":8,
+                "Albemarle":9,"Greene":9,"Madison":9,"Culpeper":9,"Orange":9,"Louisa":9,"Fluvanna":9,"Nelson":9,"Appomattox":9,"Amherst":9,"Bedford":9,"Campbell":9,"Charlottesville city":9,"Lynchburg city":9,"Rappahannock":9
+            };
+            return map[countyName] || 4; 
+        }
+
+        // --- RECALCULATE REGION STATS BASED ON REAL DATA ---
+        // We do this dynamically so your region view matches your new CSV data
+        let regionData = [
+            { id: 1, name: "Southwest Virginia", employers: ["Goodyear", "Utility Trailer"], training: ["Mountain Empire CC", "Red Onion"] },
+            { id: 2, name: "New River Valley", employers: ["Volvo Group", "Cornerstone"], training: ["New River CC", "Bland CC"] },
+            { id: 3, name: "Southern Virginia", employers: ["Goodyear", "Microsoft"], training: ["GO TEC", "Danville CC"] },
+            { id: 4, name: "Richmond / Crater", employers: ["VCU Health", "Capital One"], training: ["CCWA", "Sussex State Prison"] },
+            { id: 5, name: "Hampton Roads", employers: ["Newport News Shipbuilding", "NASA"], training: ["Tidewater CC", "Deerfield CC"] },
+            { id: 6, name: "Mary Ball Washington", employers: ["WestRock", "Ballard Fish"], training: ["Rappahannock CC", "Haynesville CC"] },
+            { id: 7, name: "Northern Virginia", employers: ["Amazon", "Booz Allen"], training: ["NOVA CC", "Coffeewood CC"] },
+            { id: 8, name: "Shenandoah Valley", employers: ["Hershey", "Merck"], training: ["Blue Ridge CC", "Augusta CC"] },
+            { id: 9, name: "Piedmont Corridor", employers: ["UVA", "Afton Scientific"], training: ["PVCC", "Fluvanna CCW"] }
+        ];
+
+        // Init stats
+        regionData.forEach(r => r.stats = { jobs: 0, returnees: 0, gap: 0 });
+
+        // Loop through all counties and sum up to regions
+        Object.keys(countyMockData).forEach(countyName => {
+            const rId = getRegionID(countyName);
+            const region = regionData.find(r => r.id === rId);
+            if(region) {
+                // Add Prisoners
+                region.stats.returnees += countyMockData[countyName].prisoners;
+                
+                // Add Jobs
+                // Match key format ("Accomack" vs "Accomack County")
+                const jobKey = countyName.replace(" County", "").replace(" City", "");
+                const jobInfo = countyJobData[jobKey];
+                if(jobInfo) {
+                    region.stats.jobs += jobInfo.jobs;
+                }
+            }
+        });
+
+        // Calc Gap
+        regionData.forEach(r => {
+             // Gap = Jobs per Returnee
+             r.stats.gap = r.stats.returnees > 0 ? (r.stats.jobs / r.stats.returnees).toFixed(1) : 0;
+        });
+
+
+        // --- 3. METRIC CONFIGURATION ---
+        const countyMetrics = [
+            { id: 'pop', label: 'Population', accessor: d => d.pop || 0, scheme: d3.schemeBlues[9] },
+            { id: 'prisoners', label: 'Est. Returnees', accessor: d => d.prisoners || 0, scheme: d3.schemeReds[9] },
+            { id: 'jobs', label: '2nd Chance Jobs', accessor: d => d.jobs || 0, scheme: d3.schemeGreens[9] }
+        ];
+
+        const regionMetrics = [
+            { id: 'gap', label: 'Opportunity Gap (Jobs/Returnee)', accessor: d => d.stats.gap, scheme: d3.schemeRdYlGn[9] }, 
+            { id: 'returnees', label: 'Total Returnees', accessor: d => d.stats.returnees, scheme: d3.schemePurples[9] },
+            { id: 'jobs', label: 'Total 2nd Chance Jobs', accessor: d => d.stats.jobs, scheme: d3.schemeGreens[9] }
+        ];
+
+        // State
+        let currentView = 'county'; // 'county' or 'region'
+        let currentMetric = countyMetrics[1]; // Default to Returnees
+        let geoData = null; // Store fetched TopoJSON
+        let activeSelection = d3.select(null);
+
+        // --- 4. D3 SETUP ---
+        const svg = d3.select("#map");
+        const container = svg.node().parentElement;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        const path = d3.geoPath();
+        const g = svg.append("g");
+        const zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", e => g.attr("transform", e.transform));
+        svg.call(zoom);
+
+        // --- 5. MAIN RENDER LOGIC ---
+        
+        // Load Map Data
+        d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json").then(us => {
+            // Filter for Virginia (FIPS 51)
+            const vaFeatures = topojson.feature(us, us.objects.counties).features.filter(d => d.id.startsWith("51"));
+            
+            // Enrich GeoJSON with Data
+            vaFeatures.forEach(f => {
+                const name = f.properties.name;
+                const regionId = getRegionID(name);
+
+                // Get Prisoner Data
+                const popData = countyMockData[name] || { pop: 0, prisoners: 0 };
+                
+                // Get Job Data (Clean Key)
+                const key = name.replace(" County", "").replace(" City", ""); 
+                const jobData = countyJobData[key] || { jobs: 0, total_jobs: 0, share: 0, top_sector: "N/A" };
+
+                // Merge
+                f.properties.countyData = { ...popData, ...jobData, name: name };
+                f.properties.regionId = regionId;
+            });
+
+            // Store for toggling
+            geoData = {
+                raw: us,
+                counties: vaFeatures,
+                // Create Merged Regions using TopoJSON mesh/merge
+                regions: d3.range(1, 10).map(rId => {
+                    const merged = topojson.merge(us, us.objects.counties.geometries.filter(d => {
+                        // Check if this geometry belongs to VA and this region
+                        if (!d.id.startsWith("51")) return false;
+                        const props = vaFeatures.find(f => f.id === d.id)?.properties;
+                        return props && props.regionId === rId;
+                    }));
+                    merged.properties = regionData.find(r => r.id === rId); // Attach region stats
+                    return merged;
+                })
+            };
+
+            // Calculate Projection to fit VA
+            const projection = d3.geoIdentity().reflectY(true);
+            path.projection(projection);
+            const b = path.bounds({ type: "FeatureCollection", features: vaFeatures });
+            const s = 0.95 / Math.max((b[1][0] - b[0][0]) / width, (b[1][1] - b[0][1]) / height);
+            const t = [(width - s * (b[1][0] + b[0][0])) / 2, (height - s * (b[1][1] + b[0][1])) / 2];
+            projection.scale(s).translate(t);
+
+            // Initial Draw
+            updateView();
+        });
+
+        // --- 6. FUNCTIONS ---
+
+        function updateView() {
+            // Update Toggle Button Styles
+            const btnC = d3.select("#btn-county");
+            const btnR = d3.select("#btn-region");
+            if (currentView === 'county') {
+                btnC.classed("bg-white shadow-sm text-slate-900", true).classed("text-slate-600 hover:text-slate-900", false);
+                btnR.classed("bg-white shadow-sm text-slate-900", false).classed("text-slate-600 hover:text-slate-900", true);
+                currentMetric = countyMetrics[1]; 
+            } else {
+                btnR.classed("bg-white shadow-sm text-slate-900", true).classed("text-slate-600 hover:text-slate-900", false);
+                btnC.classed("bg-white shadow-sm text-slate-900", false).classed("text-slate-600 hover:text-slate-900", true);
+                currentMetric = regionMetrics[0]; 
+            }
+
+            renderMap();
+            renderControls();
+            resetInfo();
+        }
+
+        function renderMap() {
+            const dataToDraw = currentView === 'county' ? geoData.counties : geoData.regions;
+
+            const values = dataToDraw.map(d => 
+                currentView === 'county' ? currentMetric.accessor(d.properties.countyData) : currentMetric.accessor(d.properties)
+            );
+            
+            const colorScale = d3.scaleQuantile()
+                .domain(values)
+                .range(currentMetric.scheme);
+
+            const paths = g.selectAll("path").data(dataToDraw);
+
+            paths.exit().remove();
+
+            paths.enter().append("path")
+                .merge(paths)
+                .attr("d", path)
+                .attr("class", "map-path")
+                .attr("fill", d => {
+                    const val = currentView === 'county' ? currentMetric.accessor(d.properties.countyData) : currentMetric.accessor(d.properties);
+                    return colorScale(val);
+                })
+                .on("click", clicked);
+            
+            updateLegend(colorScale);
+        }
+
+        function clicked(event, d) {
+            const props = d.properties;
+            
+            // Zoom Logic
+            const [[x0, y0], [x1, y1]] = path.bounds(d);
+            event.stopPropagation();
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity
+                    .translate(width / 2, height / 2)
+                    .scale(Math.min(8, 0.9 / Math.max((x1 - x0) / width, (y1 - y0) / height)))
+                    .translate(-(x0 + x1) / 2, -(y0 + y1) / 2)
+            );
+            d3.select("#reset-zoom").classed("opacity-0 pointer-events-none", false);
+
+            // Highlight
+            if (activeSelection) activeSelection.classed("active", false);
+            activeSelection = d3.select(this).classed("active", true);
+
+            // Update Info Panel
+            const panel = d3.select("#info-panel");
+            panel.html(""); // Clear
+
+            if (currentView === 'county') {
+                const data = props.countyData;
+                panel.html(`
+                    <div class="mb-4">
+                        <h2 class="text-2xl font-bold text-slate-800">${data.name}</h2>
+                        <span class="inline-block px-2 py-1 text-xs font-semibold bg-slate-200 rounded mt-1">Region ${props.regionId}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="bg-blue-50 p-3 rounded">
+                            <span class="block text-xs text-blue-500 uppercase">Population</span>
+                            <span class="text-xl font-bold text-blue-900">${d3.format(",")(data.pop)}</span>
+                        </div>
+                        <div class="bg-red-50 p-3 rounded">
+                            <span class="block text-xs text-red-500 uppercase">Est. Returnees</span>
+                            <span class="text-xl font-bold text-red-900">${d3.format(",")(data.prisoners)}</span>
+                        </div>
+                    </div>
+
+                     <div class="bg-green-50 p-4 rounded border-l-4 border-green-500">
+                        <h3 class="font-bold text-green-900 mb-2">Second Chance Economy</h3>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-green-700">Accessible Jobs:</span>
+                            <span class="font-bold">${d3.format(",")(data.jobs)}</span>
+                        </div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-green-700">Share of Economy:</span>
+                            <span class="font-bold">${data.share}%</span>
+                        </div>
+                        <div class="mt-2 text-xs text-green-600">
+                            Top Sector: <span class="font-semibold uppercase">${data.top_sector}</span>
+                        </div>
+                    </div>
+                `);
+            } else {
+                // Region View
+                panel.html(`
+                    <div class="mb-4 border-b pb-4">
+                        <h2 class="text-2xl font-bold text-slate-800">Region ${props.id}</h2>
+                        <h3 class="text-lg text-slate-600">${props.name}</h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-2 mb-6">
+                        <div class="bg-slate-50 p-2 rounded text-center">
+                            <div class="text-xs text-slate-500">Gap Score</div>
+                            <div class="font-bold text-lg ${props.stats.gap > 2.0 ? 'text-green-600' : 'text-red-600'}">${props.stats.gap}</div>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded text-center">
+                            <div class="text-xs text-slate-500">Returnees</div>
+                            <div class="font-bold text-lg">${d3.format(",")(props.stats.returnees)}</div>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded text-center">
+                            <div class="text-xs text-slate-500">Jobs</div>
+                            <div class="font-bold text-lg">${d3.format(",")(props.stats.jobs)}</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h4 class="font-bold text-xs uppercase text-slate-400 mb-2">Top Employers</h4>
+                        <ul class="text-sm space-y-1">
+                            ${props.employers.map(e => `<li class="flex items-center"><span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>${e}</li>`).join('')}
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-xs uppercase text-slate-400 mb-2">Training Programs</h4>
+                        <ul class="text-sm space-y-1">
+                             ${props.training.map(t => `<li class="flex items-center"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>${t}</li>`).join('')}
+                        </ul>
+                    </div>
+                `);
+            }
+        }
+
+        function resetInfo() {
+            if (activeSelection) activeSelection.classed("active", false);
+            activeSelection = null;
+            
+            svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
+            d3.select("#reset-zoom").classed("opacity-0 pointer-events-none", true);
+
+            d3.select("#info-panel").html(`
+                <div class="text-center p-6 border-2 border-dashed border-slate-300 rounded-lg bg-slate-50">
+                    <h2 class="text-lg font-semibold text-slate-700">Select an Area</h2>
+                    <p class="text-sm text-slate-500 mt-1">Click a ${currentView} on the map to view statistics.</p>
+                </div>
+            `);
+        }
+
+        function renderControls() {
+            const container = d3.select("#controls").html("");
+            const metrics = currentView === 'county' ? countyMetrics : regionMetrics;
+
+            metrics.forEach(m => {
+                const row = container.append("div").attr("class", "flex items-center mb-2 cursor-pointer");
+                const input = row.append("input")
+                    .attr("type", "radio")
+                    .attr("name", "metric")
+                    .property("checked", m.id === currentMetric.id)
+                    .on("change", () => {
+                        currentMetric = m;
+                        renderMap();
+                    });
+                row.append("span").attr("class", "ml-2 text-sm text-slate-700").text(m.label);
+            });
+        }
+
+        function updateLegend(scale) {
+            const container = d3.select("#legend").html("");
+            const range = scale.range();
+            
+            const legendRow = container.append("div").attr("class", "flex w-full h-3 rounded overflow-hidden mb-1");
+            range.forEach(color => {
+                legendRow.append("div").style("background", color).style("flex", 1);
+            });
+
+            const labels = container.append("div").attr("class", "flex justify-between text-xs text-slate-500");
+            labels.append("span").text("Low");
+            labels.append("span").text("High");
+        }
+
+        // --- 7. EVENT LISTENERS ---
+        d3.select("#btn-county").on("click", () => { currentView = 'county'; updateView(); });
+        d3.select("#btn-region").on("click", () => { currentView = 'region'; updateView(); });
+        d3.select("#reset-zoom").on("click", resetInfo);
+
+    </script>
+</body>
+</html>

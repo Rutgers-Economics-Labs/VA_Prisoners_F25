@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virginia Post-Incarceration Economic Opportunity Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .gap-score-badge {
+            position: relative;
+            display: inline-block;
+        }
+
+        .gap-score-badge::after {
+            content: '';
+            display: block;
+            height: 4px;
+            border-radius: 2px;
+            margin-top: 4px;
+        }
+
+        .score-low::after {
+            background: #ef4444;
+            width: 33%;
+        }
+
+        /* Red */
+        .score-mid::after {
+            background: #eab308;
+            width: 66%;
+        }
+
+        /* Yellow */
+        .score-high::after {
+            background: #22c55e;
+            width: 100%;
+        }
+
+        /* Green */
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+
+    <nav
+        class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center gap-4">
+            <div class="bg-blue-900 text-white font-bold p-2 rounded">ACTION-HUB</div>
+            <div>
+                <h1 class="text-xl font-bold text-slate-900 hidden md:block">Post-Incarceration Opportunity Hub</h1>
+                <p class="text-xs text-slate-500 hidden md:block leading-none">Resource & Policy Toolkit</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <button
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-semibold transition flex items-center shadow-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Download Report
+            </button>
+
+            <div class="h-6 w-px bg-slate-200 mx-2"></div>
+
+            <a href="index.html"
+                class="flex items-center text-slate-500 hover:text-blue-600 font-medium transition text-sm group">
+                View Map
+                <span class="group-hover:-translate-x-1 transition-transform inline-block mr-1">&rarr;</span>
+            </a>
+        </div>
+    </nav>
+
+    <header class="bg-slate-900 text-white py-12 px-6 border-b border-slate-800">
+        <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="md:col-span-2">
+                <h1 class="text-3xl font-bold mb-4 leading-tight">Bridging the Gap: From Incarceration to Economic
+                    Mobility</h1>
+                <p class="text-slate-400 mb-6 text-sm leading-relaxed">
+                    Utilization of geospatial modeling to connect the ~10,800 annual returnees with G3-funded training
+                    pipelines and second-chance employers.
+                </p>
+                <div class="bg-white p-1.5 rounded-lg shadow-lg flex items-center gap-2 w-full">
+                    <span class="text-slate-500 pl-3">📍</span>
+                    <select id="region-select"
+                        class="w-full p-2 text-slate-900 font-semibold focus:outline-none bg-transparent text-sm">
+                        <option value="" disabled selected>Select a GO Virginia Region to Analyze...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                <div class="text-slate-400 text-xs uppercase tracking-wide font-semibold mb-1">Statewide Recidivism
+                    (FY20)</div>
+                <div class="text-3xl font-bold text-green-400">17.6%</div>
+                <div class="text-xs text-slate-500 mt-2">Lowest among 34 reporting states. Baseline for innovation.
+                </div>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                <div class="text-slate-400 text-xs uppercase tracking-wide font-semibold mb-1">Annual Cost of Recidivism
+                </div>
+                <div class="text-3xl font-bold text-red-400">$496.8M</div>
+                <div class="text-xs text-slate-500 mt-2">~$57 per resident. Target for fiscal policy intervention.</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-10 min-h-screen">
+
+        <div id="region-content" class="hidden animate-fade-in">
+
+            <div
+                class="flex flex-col md:flex-row items-start md:items-end justify-between mb-8 border-b border-slate-200 pb-6 gap-4">
+                <div>
+                    <div class="flex items-center gap-3 mb-1">
+                        <span
+                            class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">GO
+                            Virginia Region <span id="r-id"></span></span>
+                        <span id="gap-badge" class="text-xs font-bold px-2 py-1 rounded border"></span>
+                    </div>
+                    <h2 id="r-title" class="text-4xl font-bold text-slate-900">Region Name</h2>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-slate-500">Opportunity Gap Score</div>
+                    <div id="r-score" class="text-3xl font-bold font-mono">0.0</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+
+                <div class="lg:col-span-1">
+                    <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                            </path>
+                        </svg>
+                        Priority Employers
+                    </h3>
+                    <div id="employer-list" class="space-y-3"></div>
+                </div>
+
+                <div class="lg:col-span-1">
+                    <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                            </path>
+                        </svg>
+                        G3 Training Pipeline
+                    </h3>
+                    <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-lg mb-4">
+                        <div class="text-xs text-emerald-800 font-bold uppercase mb-1">G3 Program Eligible</div>
+                        <p class="text-sm text-emerald-900 leading-snug">Tuition assistance for families < 400% FPL +
+                                Student Support Incentive Grants ($900/term).</p>
+                    </div>
+                    <div id="training-list" class="space-y-3"></div>
+                </div>
+
+                <div class="lg:col-span-1">
+                    <div class="bg-slate-900 text-white p-6 rounded-xl shadow-lg relative overflow-hidden">
+                        <div
+                            class="absolute top-0 right-0 -mt-2 -mr-2 w-20 h-20 bg-blue-500 rounded-full opacity-20 blur-xl">
+                        </div>
+                        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z">
+                                </path>
+                            </svg>
+                            Policy Recommendation
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="text-xs text-slate-400 uppercase tracking-wide font-bold">Identified Barrier
+                                </div>
+                                <div id="r-barrier" class="text-sm font-medium text-slate-200 mt-1"></div>
+                            </div>
+                            <div class="border-t border-slate-700 pt-4">
+                                <div class="text-xs text-yellow-400 uppercase tracking-wide font-bold">Action Plan</div>
+                                <p id="r-policy" class="text-sm text-white mt-1 leading-relaxed italic"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div id="default-state" class="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
+            <h3 class="text-xl font-semibold text-slate-500">Select a region above to view the Opportunity Map</h3>
+            <p class="text-slate-400 mt-2 max-w-lg mx-auto text-sm">Explore localized labor market data, G3 educational
+                alignment, and gap analysis for all 9 GO Virginia regions.</p>
+        </div>
+
+        <div class="mt-16 pt-10 border-t border-slate-200">
+            <h2 class="text-2xl font-bold text-slate-900 mb-6">Employer "Frictionless Incentive" Toolkit</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <a href="https://www.vec.virginia.gov/employers/incentives/work-opportunity-tax-credit" target="_blank"
+                    class="block group">
+                    <div
+                        class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm group-hover:border-blue-500 group-hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="font-bold text-slate-800">WOTC Tax Credit</h3>
+                            <span
+                                class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-mono font-bold">$2,400</span>
+                        </div>
+                        <p class="text-slate-600 text-sm mb-4">Federal tax credit for hiring qualified ex-felons within
+                            one year of release. VEC administration.</p>
+                        <span class="text-blue-600 text-xs font-bold uppercase tracking-wide">Download Guide
+                            &rarr;</span>
+                    </div>
+                </a>
+
+                <a href="https://vadoc.virginia.gov/general-public/virginia-bonding-program/" target="_blank"
+                    class="block group">
+                    <div
+                        class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm group-hover:border-blue-500 group-hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="font-bold text-slate-800">Federal Bonding</h3>
+                            <span
+                                class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded font-mono font-bold">$5,000</span>
+                        </div>
+                        <p class="text-slate-600 text-sm mb-4">Free fidelity bonding insurance for the first 6 months.
+                            Covers theft/dishonesty. No cost to employer.</p>
+                        <span class="text-blue-600 text-xs font-bold uppercase tracking-wide">Request Voucher
+                            &rarr;</span>
+                    </div>
+                </a>
+
+                <a href="https://www.pvcc.edu/network2work" target="_blank" class="block group">
+                    <div
+                        class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm group-hover:border-blue-500 group-hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="font-bold text-slate-800">Network2Work</h3>
+                            <span
+                                class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded font-mono font-bold">Innovation</span>
+                        </div>
+                        <p class="text-slate-600 text-sm mb-4">Peer-navigator model using "Connectors" to vouch for job
+                            seekers. Reduces turnover and conviction stigma.</p>
+                        <span class="text-blue-600 text-xs font-bold uppercase tracking-wide">View Framework
+                            &rarr;</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-slate-50 border-t border-slate-200 py-8 text-center text-slate-500 text-sm">
+        <p>Data Sources: VADOC Recidivism FY2020, Virginia Works (LWDA), GO Virginia, BLS JOLTS 2024.</p>
+        <p class="mt-2">© 2025 Virginia Reentry Action Hub. Designed for Public Policy Analysis.</p>
+    </footer>
+
+    <script>
+        // --- DATA STRUCTURE BASED ON REPORT ---
+        // Helper function to generate Google search URL
+        const googleSearch = (query) => `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+
+        const regionData = [
+            {
+                id: 1,
+                name: "Southwest Virginia",
+                score: 0.8,
+                status: "Reentry Desert",
+                barrier: "Geographic Isolation & Transport",
+                employers: [
+                    { name: "Utility Trailer Manufacturing", type: "Manufacturing", desc: "Leading trailer manufacturer with entry-level production roles", url: "https://www.utilitytrailer.com/careers" },
+                    { name: "Paramount Coal Company", type: "Energy", desc: "Regional coal mining operations with equipment operator positions", url: googleSearch("Paramount Coal Company Virginia careers") },
+                    { name: "Tempur Sealy", type: "Manufacturing", desc: "Mattress manufacturing facility with assembly and logistics roles", url: "https://careers.tempursealy.com/" },
+                    { name: "CGI", type: "IT/Support", desc: "IT services company with support desk and data entry positions", url: "https://www.cgi.com/us/en-us/careers" }
+                ],
+                training: [
+                    { name: "Mountain Empire CC", program: "Welding & Industrial Electronics", desc: "Hands-on welding certification and electronics training", url: "https://www.mecc.edu/" },
+                    { name: "Southwest Virginia CC", program: "FastForward", desc: "Short-term workforce credentials in high-demand fields", url: "https://sw.edu/fastforward/" },
+                    { name: "VADOC Red Onion", program: "CTE Programs", desc: "Career and technical education within correctional facility", url: googleSearch("VADOC Red Onion CTE programs") }
+                ],
+                policy: "Prioritize funding for MECC mobile training units (welding/HVAC labs on wheels) to bridge physical gaps in coalfield communities."
+            },
+            {
+                id: 2,
+                name: "New River Valley",
+                score: 1.8,
+                status: "Logistical Gap",
+                barrier: "Transit Access to Industrial Parks",
+                employers: [
+                    { name: "Volvo Group", type: "Transportation Mfg", desc: "Heavy truck manufacturing with production and skilled trades roles", url: "https://www.volvogroup.com/en/careers.html" },
+                    { name: "Cornerstone Building Brands", type: "Building Materials", desc: "Building products manufacturer with warehouse and production jobs", url: "https://www.cornerstonebuildingbrands.com/careers/" },
+                    { name: "Camrett Logistics", type: "Logistics", desc: "Regional logistics company with driver and warehouse positions", url: googleSearch("Camrett Logistics Dublin VA careers") },
+                    { name: "Carilion Clinic", type: "Healthcare Support", desc: "Healthcare system with food service, housekeeping, and transport roles", url: "https://www.carilionclinic.org/careers" }
+                ],
+                training: [
+                    { name: "New River CC", program: "Mechatronics", desc: "Industrial automation and robotics certification", url: "https://www.nr.edu/" },
+                    { name: "VADOC Bland Correctional", program: "CTE", desc: "Career technical education programs for incarcerated individuals", url: googleSearch("VADOC Bland Correctional CTE") },
+                    { name: "Radford University", program: "Competency Based Ed", desc: "Flexible degree completion for working adults", url: "https://www.radford.edu/" }
+                ],
+                policy: "Immediate state investment in 'Wheels to Work' subsidies and dedicated shuttles connecting release housing to the Dublin industrial corridor."
+            },
+            {
+                id: 3,
+                name: "Southern Virginia",
+                score: 1.5,
+                status: "Competitive Market",
+                barrier: "Credential Alignment",
+                employers: [
+                    { name: "Goodyear Tire & Rubber Co.", type: "Manufacturing", desc: "Tire manufacturing plant with production and quality roles", url: "https://jobs.goodyear.com/" },
+                    { name: "Morgan Olson", type: "Automotive", desc: "Walk-in van manufacturer with welding and assembly positions", url: "https://www.morganolson.com/careers/" },
+                    { name: "Essel Propack", type: "Packaging", desc: "Laminated tube manufacturer with machine operator roles", url: googleSearch("Essel Propack Danville VA jobs") },
+                    { name: "Microsoft", type: "Data Center Ops", desc: "Data center with facilities and operations technician roles", url: "https://careers.microsoft.com/" }
+                ],
+                training: [
+                    { name: "GO TEC", program: "Great Opportunities in Tech", desc: "Advanced manufacturing and IT career pathways", url: "https://www.gotecva.org/" },
+                    { name: "IALR", program: "Precision Machining", desc: "CNC machining and precision manufacturing training", url: "https://www.ialr.org/" },
+                    { name: "VADOC Green Rock / Danville CC", program: "Partnership Program", desc: "Collaborative workforce training for returning citizens", url: googleSearch("VADOC Green Rock Danville Community College partnership") }
+                ],
+                policy: "Formalize 'Pre-Release Apprenticeships' where inmates begin the GO TEC curriculum inside Green Rock, graduating with credentials employers like Goodyear require."
+            },
+            {
+                id: 4,
+                name: "Richmond / Crater",
+                score: 2.4,
+                status: "Opportunity Mismatch",
+                barrier: "Housing Instability & Cost of Living",
+                employers: [
+                    { name: "Amazon Logistics", type: "Warehousing", desc: "Fulfillment center with picker, packer, and driver roles", url: "https://www.amazon.jobs/" },
+                    { name: "Dominion Energy", type: "Utilities", desc: "Energy company with field technician and meter reader positions", url: "https://careers.dominionenergy.com/" },
+                    { name: "HCA Virginia", type: "Healthcare Support", desc: "Hospital system with environmental services and food service roles", url: "https://careers.hcahealthcare.com/" },
+                    { name: "Sabra Dipping Company", type: "Food Production", desc: "Hummus manufacturer with production and packaging positions", url: googleSearch("Sabra Dipping Company Richmond VA careers") }
+                ],
+                training: [
+                    { name: "CCWA", program: "Logistics & Mfg Credentials", desc: "Workforce development for logistics and manufacturing sectors", url: "https://ccwavawork.com/" },
+                    { name: "VADOC State Farm / Beaumont", program: "CTE", desc: "Career technical training at correctional facilities", url: googleSearch("VADOC State Farm Beaumont CTE programs") },
+                    { name: "J. Sargeant Reynolds CC", program: "Automotive Technology", desc: "ASE-certified automotive repair training", url: "https://www.reynolds.edu/" }
+                ],
+                policy: "Implement 'Housing-First' workforce models. High rent pushes returnees into instability; co-locate employment services with rapid-rehousing programs."
+            },
+            {
+                id: 5,
+                name: "Hampton Roads",
+                score: 2.1,
+                status: "Regulatory Barrier",
+                barrier: "Security Clearances (TWIC)",
+                employers: [
+                    { name: "Newport News Shipbuilding (HII)", type: "Shipbuilding", desc: "Major shipyard with welding, pipefitting, and trades positions", url: "https://hii.com/careers/" },
+                    { name: "Port of Virginia", type: "Logistics", desc: "Port operations with crane operator and logistics roles", url: "https://www.portofvirginia.com/careers/" },
+                    { name: "Smithfield Foods", type: "Food Processing", desc: "Meat processing facility with production and maintenance jobs", url: "https://www.smithfieldfoods.com/careers" },
+                    { name: "BAE Systems", type: "Ship Repair", desc: "Ship repair and modernization with skilled trades positions", url: "https://jobs.baesystems.com/" }
+                ],
+                training: [
+                    { name: "Tidewater CC", program: "Maritime Welding", desc: "Specialized welding certification for shipyard careers", url: "https://www.tcc.edu/" },
+                    { name: "VADOC St. Brides / Indian Creek", program: "CTE Programs", desc: "Career training at Hampton Roads correctional facilities", url: googleSearch("VADOC St Brides Indian Creek CTE") },
+                    { name: "Maritime Trades Training", program: "Apprenticeship", desc: "Union apprenticeship programs for maritime trades", url: googleSearch("Maritime Trades Training Hampton Roads Virginia") }
+                ],
+                policy: "Fund specialized legal clinics to help qualified non-violent offenders navigate TWIC appeal processes to unlock high-paying shipyard careers."
+            },
+            {
+                id: 6,
+                name: "Mary Ball Washington",
+                score: 0.9,
+                status: "Rural Economy",
+                barrier: "Limited Industry Diversity",
+                employers: [
+                    { name: "Ballard Fish & Oyster Co.", type: "Aquaculture", desc: "Seafood harvesting and processing with seasonal opportunities", url: googleSearch("Ballard Fish Oyster Company Virginia") },
+                    { name: "WestRock", type: "Paper/Forestry", desc: "Paper and packaging manufacturer with machine operator roles", url: "https://www.westrock.com/careers" },
+                    { name: "Omega Protein", type: "Marine Products", desc: "Fish processing with production and maintenance positions", url: googleSearch("Omega Protein Reedville Virginia jobs") },
+                    { name: "Riverside Health System", type: "Healthcare", desc: "Regional healthcare with support services opportunities", url: "https://www.riversideonline.com/careers" }
+                ],
+                training: [
+                    { name: "Rappahannock CC", program: "Aquaculture/Diesel", desc: "Marine trades and diesel technology certification", url: "https://www.rappahannock.edu/" },
+                    { name: "VADOC Haynesville Correctional", program: "Work Programs", desc: "Vocational training within correctional setting", url: googleSearch("VADOC Haynesville Correctional work programs") },
+                    { name: "Middle Peninsula Workforce Board", program: "Job Training", desc: "Regional workforce development and job placement services", url: "https://www.vcwmiddlepeninsula.com/" }
+                ],
+                policy: "Expand 'field-based' work release programs with agricultural employers like Ballard Fish & Oyster, aligning with the region's natural resource economy."
+            },
+            {
+                id: 7,
+                name: "Northern Virginia",
+                score: 3.1,
+                status: "High Barrier Market",
+                barrier: "Cost of Living & Clearance Requirements",
+                employers: [
+                    { name: "Amazon Web Services", type: "Data Centers", desc: "Data center operations with facilities technician roles", url: "https://www.amazon.jobs/en/teams/aws-data-center-operations" },
+                    { name: "Washington Gas", type: "Utilities", desc: "Natural gas utility with field service technician positions", url: "https://jobs.washingtongas.com/" },
+                    { name: "Rosenthal Automotive", type: "Auto Dealerships", desc: "Dealership group with service technician and detail positions", url: "https://www.rosenthalauto.com/careers/" },
+                    { name: "Commercial Construction", type: "Construction", desc: "Building trades with laborer and apprentice opportunities", url: googleSearch("commercial construction jobs Northern Virginia") }
+                ],
+                training: [
+                    { name: "NOVA CC", program: "Data Center Operations", desc: "IT infrastructure and data center technician certification", url: "https://www.nvcc.edu/" },
+                    { name: "Heavy Construction Academy", program: "Equipment Operation", desc: "Heavy equipment operator certification program", url: googleSearch("Heavy Construction Academy Northern Virginia") },
+                    { name: "SkillSource Group", program: "Workforce Services", desc: "Career counseling and job placement for Northern Virginia", url: "https://myskillsource.org/" }
+                ],
+                policy: "Shift focus from clearance-heavy defense roles to Data Center Operations (NOVA CC), where technician roles often have lower federal clearance hurdles."
+            },
+            {
+                id: 8,
+                name: "Shenandoah Valley",
+                score: 1.2,
+                status: "Second Chance Hub",
+                barrier: "Coordination of Smaller Employers",
+                employers: [
+                    { name: "Hershey Chocolate of Virginia", type: "Food Manufacturing", desc: "Chocolate production with packaging and machine operator roles", url: "https://www.thehersheycompany.com/en_us/careers.html" },
+                    { name: "McKee Foods", type: "Food Manufacturing", desc: "Snack cake manufacturer with production and distribution jobs", url: "https://www.mckeefoods.com/careers" },
+                    { name: "HP Hood", type: "Dairy Processing", desc: "Dairy products facility with production technician positions", url: "https://www.hood.com/careers/" },
+                    { name: "Merck", type: "Pharmaceutical Mfg", desc: "Pharmaceutical manufacturing with operator and technician roles", url: "https://jobs.merck.com/" }
+                ],
+                training: [
+                    { name: "Blue Ridge CC", program: "Advanced Manufacturing", desc: "Advanced manufacturing and industrial technology training", url: "https://www.brcc.edu/" },
+                    { name: "VADOC Augusta Correctional", program: "CTE Programs", desc: "Career technical education within correctional facility", url: googleSearch("VADOC Augusta Correctional CTE programs") },
+                    { name: "Valley Workforce Board", program: "Job Training", desc: "Regional workforce development and career services", url: "https://www.vcwvalley.com/" }
+                ],
+                policy: "Establish a regional 'Fair Chance Business Council' to formalize hiring practices of major food manufacturers and recruit smaller employers."
+            },
+            {
+                id: 9,
+                name: "Piedmont Opportunity",
+                score: 1.7,
+                status: "Innovation Model",
+                barrier: "Childcare & Female Reentry",
+                employers: [
+                    { name: "UVA Health", type: "Healthcare Support", desc: "Academic medical center with environmental and food services roles", url: "https://uvahealth.com/careers" },
+                    { name: "Afton Scientific", type: "Biotech", desc: "Pharmaceutical services company with lab and production positions", url: "https://www.aftonscientific.com/careers/" },
+                    { name: "Papa Weaver's Pork", type: "Food Production", desc: "Local pork producer with processing and packaging opportunities", url: googleSearch("Papa Weavers Pork Charlottesville Virginia") },
+                    { name: "Firefly Fiber Broadband", type: "Telecommunications", desc: "Fiber internet provider with installation technician roles", url: "https://www.fireflyva.com/careers/" }
+                ],
+                training: [
+                    { name: "PVCC", program: "Network2Work", desc: "Peer navigator model connecting job seekers with employers", url: "https://www.pvcc.edu/network2work" },
+                    { name: "VADOC Fluvanna Women's Center", program: "Reentry Programs", desc: "Workforce preparation for incarcerated women", url: googleSearch("VADOC Fluvanna Womens Center programs") },
+                    { name: "CATEC", program: "Technical Education", desc: "Career and technical education for Central Virginia", url: "https://www.catec.org/" }
+                ],
+                policy: "Scale the 'Network2Work' peer-navigator model specifically for Fluvanna Correctional. Connect female returnees to the UVA Health ecosystem."
+            }
+        ];
+
+        // --- RENDER LOGIC ---
+        const select = document.getElementById('region-select');
+        const content = document.getElementById('region-content');
+        const defaultState = document.getElementById('default-state');
+
+        // Populate Dropdown
+        regionData.forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r.id;
+            opt.textContent = `Region ${r.id}: ${r.name}`;
+            select.appendChild(opt);
+        });
+
+        // Handle Change
+        select.addEventListener('change', (e) => {
+            const rId = parseInt(e.target.value);
+            const data = regionData.find(r => r.id === rId);
+
+            if (data) {
+                defaultState.classList.add('hidden');
+                content.classList.remove('hidden');
+
+                // Headers
+                document.getElementById('r-id').innerText = data.id;
+                document.getElementById('r-title').innerText = data.name;
+                document.getElementById('r-score').innerText = data.score.toFixed(1);
+
+                // Gap Badge Logic
+                const badge = document.getElementById('gap-badge');
+                badge.innerText = data.status;
+                badge.className = "text-xs font-bold px-2 py-1 rounded border gap-score-badge"; // reset
+                if (data.score < 1.0) {
+                    badge.classList.add('bg-red-100', 'text-red-800', 'border-red-200', 'score-low');
+                    document.getElementById('r-score').className = "text-3xl font-bold font-mono text-red-600";
+                } else if (data.score > 2.0) {
+                    badge.classList.add('bg-yellow-100', 'text-yellow-800', 'border-yellow-200', 'score-mid');
+                    document.getElementById('r-score').className = "text-3xl font-bold font-mono text-yellow-600";
+                } else {
+                    badge.classList.add('bg-green-100', 'text-green-800', 'border-green-200', 'score-high');
+                    document.getElementById('r-score').className = "text-3xl font-bold font-mono text-green-600";
+                }
+
+                // Employer List - Now interactive with links and descriptions
+                document.getElementById('employer-list').innerHTML = data.employers.map(emp => `
+                    <a href="${emp.url}" target="_blank" rel="noopener noreferrer" class="block group">
+                        <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm hover:border-blue-400 hover:shadow-md transition cursor-pointer">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="font-semibold text-slate-800 group-hover:text-blue-600 transition text-sm">${emp.name}</span>
+                                <span class="bg-slate-100 text-slate-600 text-xs px-1.5 py-0.5 rounded font-medium">${emp.type}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 leading-snug">${emp.desc}</p>
+                            <span class="text-blue-500 text-xs font-medium mt-2 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                                View Careers <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </span>
+                        </div>
+                    </a>
+                `).join('');
+
+                // Training List - Now interactive with links and descriptions
+                document.getElementById('training-list').innerHTML = data.training.map(t => `
+                    <a href="${t.url}" target="_blank" rel="noopener noreferrer" class="block group">
+                        <div class="bg-white p-3 rounded-lg border-l-4 border-emerald-400 shadow-sm hover:shadow-md hover:bg-emerald-50 transition cursor-pointer">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="font-semibold text-slate-800 group-hover:text-emerald-700 transition text-sm">${t.name}</span>
+                            </div>
+                            <div class="text-emerald-600 text-xs font-medium mb-1">${t.program}</div>
+                            <p class="text-xs text-slate-500 leading-snug">${t.desc}</p>
+                            <span class="text-emerald-600 text-xs font-medium mt-2 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                                Learn More <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </span>
+                        </div>
+                    </a>
+                `).join('');
+
+                // Policy
+                document.getElementById('r-barrier').innerText = data.barrier;
+                document.getElementById('r-policy').innerText = `${data.policy}`;
+            }
+        });
+    </script>
+</body>
+
+</html>
