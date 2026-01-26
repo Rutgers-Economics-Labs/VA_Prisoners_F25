@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,19 +10,50 @@
     <script src="https://unpkg.com/topojson@3"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; overscroll-behavior: none; }
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none;
+        }
+
         /* Map Styles */
-        .map-path { stroke: #fff; stroke-width: 0.5px; cursor: pointer; transition: fill 0.3s ease; }
-        .map-path:hover { fill-opacity: 0.8; stroke: #333; }
-        .map-path.active { stroke: #fbbf24; stroke-width: 3px; z-index: 100; }
+        .map-path {
+            stroke: #fff;
+            stroke-width: 0.5px;
+            cursor: pointer;
+            transition: fill 0.3s ease;
+        }
+
+        .map-path:hover {
+            fill-opacity: 0.8;
+            stroke: #333;
+        }
+
+        .map-path.active {
+            stroke: #fbbf24;
+            stroke-width: 3px;
+            z-index: 100;
+        }
+
         /* Region specific styles */
-        .region-border { fill: none; stroke: #000; stroke-width: 1px; pointer-events: none; }
-        html, body { overflow: hidden; height: 100%; }
+        .region-border {
+            fill: none;
+            stroke: #000;
+            stroke-width: 1px;
+            pointer-events: none;
+        }
+
+        html,
+        body {
+            overflow: hidden;
+            height: 100%;
+        }
     </style>
 </head>
+
 <body class="bg-slate-100 text-slate-800 flex flex-col h-screen antialiased">
 
-    <nav class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+    <nav
+        class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
         <div class="flex items-center gap-4">
             <div class="bg-blue-900 text-white font-bold p-2 rounded">VA-MAP</div>
             <div>
@@ -32,29 +64,33 @@
 
         <div class="flex items-center gap-4">
             <div class="bg-slate-100 p-1 rounded-lg flex text-sm font-medium mr-2">
-                <button id="btn-county" class="px-3 py-1.5 rounded-md bg-white shadow-sm text-slate-900 text-xs font-semibold transition-all">
+                <button id="btn-county"
+                    class="px-3 py-1.5 rounded-md bg-white shadow-sm text-slate-900 text-xs font-semibold transition-all">
                     County
                 </button>
-                <button id="btn-region" class="px-3 py-1.5 rounded-md text-slate-500 hover:text-slate-900 text-xs font-semibold transition-all">
+                <button id="btn-region"
+                    class="px-3 py-1.5 rounded-md text-slate-500 hover:text-slate-900 text-xs font-semibold transition-all">
                     Region
                 </button>
             </div>
 
-            <div class="h-6 w-px bg-slate-200 mx-2"></div> <a href="resources.html" class="flex items-center text-slate-500 hover:text-blue-600 font-medium transition text-sm">
+            <div class="h-6 w-px bg-slate-200 mx-2"></div> <a href="resources.html"
+                class="flex items-center text-slate-500 hover:text-blue-600 font-medium transition text-sm">
                 Action Hub &rarr;
             </a>
         </div>
     </nav>
 
     <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
-        
+
         <aside class="w-full md:w-80 lg:w-96 bg-white border-r border-slate-200 z-10 flex flex-col h-full">
             <div class="p-6 flex-1 overflow-y-auto">
-                
+
                 <div id="info-panel" class="mb-6">
                     <div class="text-center p-6 border-2 border-dashed border-slate-300 rounded-lg bg-slate-50">
                         <h2 class="text-lg font-semibold text-slate-700">Select an Area</h2>
-                        <p class="text-sm text-slate-500 mt-1">Click a county or region on the map to view statistics.</p>
+                        <p class="text-sm text-slate-500 mt-1">Click a county or region on the map to view statistics.
+                        </p>
                     </div>
                 </div>
 
@@ -63,21 +99,23 @@
                 <div>
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Data Overlay</h3>
                     <div id="controls" class="space-y-2">
-                        </div>
+                    </div>
                 </div>
 
                 <hr class="border-slate-200 my-4">
-                
+
                 <div>
-                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Legend</h3>
-                     <div id="legend" class="w-full"></div>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Legend</h3>
+                    <div id="legend" class="w-full"></div>
                 </div>
             </div>
         </aside>
 
         <main class="flex-1 bg-slate-200 relative">
             <svg id="map" class="w-full h-full"></svg>
-            <button id="reset-zoom" class="absolute top-4 right-4 bg-white text-slate-700 px-4 py-2 rounded shadow-md text-sm font-bold hover:bg-slate-50 transition opacity-0 pointer-events-none">Reset Zoom</button>
+            <button id="reset-zoom"
+                class="absolute top-4 right-4 bg-white text-slate-700 px-4 py-2 rounded shadow-md text-sm font-bold hover:bg-slate-50 transition opacity-0 pointer-events-none">Reset
+                Zoom</button>
         </main>
 
     </div>
@@ -364,17 +402,17 @@
         // Crosswalk: Simple mapping of key counties to regions to ensure the merge works
         function getRegionID(countyName) {
             const map = {
-                "Lee":1,"Scott":1,"Wise":1,"Dickenson":1,"Buchanan":1,"Russell":1,"Tazewell":1,"Smyth":1,"Washington":1,"Bristol city":1,"Norton city":1,
-                "Bland":2,"Wythe":2,"Grayson":2,"Carroll":2,"Pulaski":2,"Montgomery":2,"Giles":2,"Floyd":2,"Radford city":2,"Galax city":2,"Roanoke":2,"Roanoke city":2,"Salem city":2,"Botetourt":2,"Craig":2,"Alleghany":2,"Covington city":2,
-                "Patrick":3,"Henry":3,"Franklin":3,"Pittsylvania":3,"Halifax":3,"Mecklenburg":3,"Brunswick":3,"Martinsville city":3,"Danville city":3,"Amelia":3,"Nottoway":3,"Lunenburg":3,"Prince Edward":3,"Charlotte":3,"Buckingham":3,"Cumberland":3,
-                "Greensville":4,"Sussex":4,"Surry":4,"Prince George":4,"Dinwiddie":4,"Chesterfield":4,"Henrico":4,"Hanover":4,"Goochland":4,"Powhatan":4,"New Kent":4,"Charles City":4,"Hopewell city":4,"Petersburg city":4,"Colonial Heights city":4,"Richmond city":4,"Emporia city":4,
-                "James City":5,"York":5,"Gloucester":5,"Isle of Wight":5,"Suffolk city":5,"Chesapeake city":5,"Virginia Beach city":5,"Norfolk city":5,"Portsmouth city":5,"Hampton city":5,"Newport News city":5,"Williamsburg city":5,"Poquoson city":5,"Southampton":5,"Franklin city":5,
-                "Westmoreland":6,"Northumberland":6,"Richmond":6,"Lancaster":6,"Essex":6,"Middlesex":6,"Mathews":6,"King George":6,"Caroline":6,"King William":6,"King and Queen":6,"Spotsylvania":6,"Stafford":6,"Fredericksburg city":6,
-                "Fairfax":7,"Arlington":7,"Prince William":7,"Loudoun":7,"Fauquier":7,"Alexandria city":7,"Falls Church city":7,"Manassas city":7,"Manassas Park city":7,"Fairfax city":7,
-                "Clarke":8,"Frederick":8,"Warren":8,"Shenandoah":8,"Page":8,"Rockingham":8,"Augusta":8,"Highland":8,"Bath":8,"Rockbridge":8,"Winchester city":8,"Harrisonburg city":8,"Staunton city":8,"Waynesboro city":8,"Lexington city":8,"Buena Vista city":8,
-                "Albemarle":9,"Greene":9,"Madison":9,"Culpeper":9,"Orange":9,"Louisa":9,"Fluvanna":9,"Nelson":9,"Appomattox":9,"Amherst":9,"Bedford":9,"Campbell":9,"Charlottesville city":9,"Lynchburg city":9,"Rappahannock":9
+                "Lee": 1, "Scott": 1, "Wise": 1, "Dickenson": 1, "Buchanan": 1, "Russell": 1, "Tazewell": 1, "Smyth": 1, "Washington": 1, "Bristol city": 1, "Norton city": 1,
+                "Bland": 2, "Wythe": 2, "Grayson": 2, "Carroll": 2, "Pulaski": 2, "Montgomery": 2, "Giles": 2, "Floyd": 2, "Radford city": 2, "Galax city": 2, "Roanoke": 2, "Roanoke city": 2, "Salem city": 2, "Botetourt": 2, "Craig": 2, "Alleghany": 2, "Covington city": 2,
+                "Patrick": 3, "Henry": 3, "Franklin": 3, "Pittsylvania": 3, "Halifax": 3, "Mecklenburg": 3, "Brunswick": 3, "Martinsville city": 3, "Danville city": 3, "Amelia": 3, "Nottoway": 3, "Lunenburg": 3, "Prince Edward": 3, "Charlotte": 3, "Buckingham": 3, "Cumberland": 3,
+                "Greensville": 4, "Sussex": 4, "Surry": 4, "Prince George": 4, "Dinwiddie": 4, "Chesterfield": 4, "Henrico": 4, "Hanover": 4, "Goochland": 4, "Powhatan": 4, "New Kent": 4, "Charles City": 4, "Hopewell city": 4, "Petersburg city": 4, "Colonial Heights city": 4, "Richmond city": 4, "Emporia city": 4,
+                "James City": 5, "York": 5, "Gloucester": 5, "Isle of Wight": 5, "Suffolk city": 5, "Chesapeake city": 5, "Virginia Beach city": 5, "Norfolk city": 5, "Portsmouth city": 5, "Hampton city": 5, "Newport News city": 5, "Williamsburg city": 5, "Poquoson city": 5, "Southampton": 5, "Franklin city": 5,
+                "Westmoreland": 6, "Northumberland": 6, "Richmond": 6, "Lancaster": 6, "Essex": 6, "Middlesex": 6, "Mathews": 6, "King George": 6, "Caroline": 6, "King William": 6, "King and Queen": 6, "Spotsylvania": 6, "Stafford": 6, "Fredericksburg city": 6,
+                "Fairfax": 7, "Arlington": 7, "Prince William": 7, "Loudoun": 7, "Fauquier": 7, "Alexandria city": 7, "Falls Church city": 7, "Manassas city": 7, "Manassas Park city": 7, "Fairfax city": 7,
+                "Clarke": 8, "Frederick": 8, "Warren": 8, "Shenandoah": 8, "Page": 8, "Rockingham": 8, "Augusta": 8, "Highland": 8, "Bath": 8, "Rockbridge": 8, "Winchester city": 8, "Harrisonburg city": 8, "Staunton city": 8, "Waynesboro city": 8, "Lexington city": 8, "Buena Vista city": 8,
+                "Albemarle": 9, "Greene": 9, "Madison": 9, "Culpeper": 9, "Orange": 9, "Louisa": 9, "Fluvanna": 9, "Nelson": 9, "Appomattox": 9, "Amherst": 9, "Bedford": 9, "Campbell": 9, "Charlottesville city": 9, "Lynchburg city": 9, "Rappahannock": 9
             };
-            return map[countyName] || 4; 
+            return map[countyName] || 4;
         }
 
         // --- RECALCULATE REGION STATS BASED ON REAL DATA ---
@@ -398,15 +436,15 @@
         Object.keys(countyMockData).forEach(countyName => {
             const rId = getRegionID(countyName);
             const region = regionData.find(r => r.id === rId);
-            if(region) {
+            if (region) {
                 // Add Prisoners
                 region.stats.returnees += countyMockData[countyName].prisoners;
-                
+
                 // Add Jobs
                 // Match key format ("Accomack" vs "Accomack County")
                 const jobKey = countyName.replace(" County", "").replace(" City", "");
                 const jobInfo = countyJobData[jobKey];
-                if(jobInfo) {
+                if (jobInfo) {
                     region.stats.jobs += jobInfo.jobs;
                 }
             }
@@ -414,8 +452,8 @@
 
         // Calc Gap
         regionData.forEach(r => {
-             // Gap = Jobs per Returnee
-             r.stats.gap = r.stats.returnees > 0 ? (r.stats.jobs / r.stats.returnees).toFixed(1) : 0;
+            // Gap = Jobs per Returnee
+            r.stats.gap = r.stats.returnees > 0 ? (r.stats.jobs / r.stats.returnees).toFixed(1) : 0;
         });
 
 
@@ -427,7 +465,7 @@
         ];
 
         const regionMetrics = [
-            { id: 'gap', label: 'Opportunity Gap (Jobs/Returnee)', accessor: d => d.stats.gap, scheme: d3.schemeRdYlGn[9] }, 
+            { id: 'gap', label: 'Opportunity Gap (Jobs/Returnee)', accessor: d => d.stats.gap, scheme: d3.schemeRdYlGn[9] },
             { id: 'returnees', label: 'Total Returnees', accessor: d => d.stats.returnees, scheme: d3.schemePurples[9] },
             { id: 'jobs', label: 'Total 2nd Chance Jobs', accessor: d => d.stats.jobs, scheme: d3.schemeGreens[9] }
         ];
@@ -443,19 +481,19 @@
         const container = svg.node().parentElement;
         const width = container.clientWidth;
         const height = container.clientHeight;
-        
+
         const path = d3.geoPath();
         const g = svg.append("g");
         const zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", e => g.attr("transform", e.transform));
         svg.call(zoom);
 
         // --- 5. MAIN RENDER LOGIC ---
-        
+
         // Load Map Data
         d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json").then(us => {
             // Filter for Virginia (FIPS 51)
             const vaFeatures = topojson.feature(us, us.objects.counties).features.filter(d => d.id.startsWith("51"));
-            
+
             // Enrich GeoJSON with Data
             vaFeatures.forEach(f => {
                 const name = f.properties.name;
@@ -463,9 +501,9 @@
 
                 // Get Prisoner Data
                 const popData = countyMockData[name] || { pop: 0, prisoners: 0 };
-                
+
                 // Get Job Data (Clean Key)
-                const key = name.replace(" County", "").replace(" City", ""); 
+                const key = name.replace(" County", "").replace(" City", "");
                 const jobData = countyJobData[key] || { jobs: 0, total_jobs: 0, share: 0, top_sector: "N/A" };
 
                 // Merge
@@ -511,11 +549,11 @@
             if (currentView === 'county') {
                 btnC.classed("bg-white shadow-sm text-slate-900", true).classed("text-slate-600 hover:text-slate-900", false);
                 btnR.classed("bg-white shadow-sm text-slate-900", false).classed("text-slate-600 hover:text-slate-900", true);
-                currentMetric = countyMetrics[1]; 
+                currentMetric = countyMetrics[1];
             } else {
                 btnR.classed("bg-white shadow-sm text-slate-900", true).classed("text-slate-600 hover:text-slate-900", false);
                 btnC.classed("bg-white shadow-sm text-slate-900", false).classed("text-slate-600 hover:text-slate-900", true);
-                currentMetric = regionMetrics[0]; 
+                currentMetric = regionMetrics[0];
             }
 
             renderMap();
@@ -526,10 +564,10 @@
         function renderMap() {
             const dataToDraw = currentView === 'county' ? geoData.counties : geoData.regions;
 
-            const values = dataToDraw.map(d => 
+            const values = dataToDraw.map(d =>
                 currentView === 'county' ? currentMetric.accessor(d.properties.countyData) : currentMetric.accessor(d.properties)
             );
-            
+
             const colorScale = d3.scaleQuantile()
                 .domain(values)
                 .range(currentMetric.scheme);
@@ -547,13 +585,13 @@
                     return colorScale(val);
                 })
                 .on("click", clicked);
-            
+
             updateLegend(colorScale);
         }
 
         function clicked(event, d) {
             const props = d.properties;
-            
+
             // Zoom Logic
             const [[x0, y0], [x1, y1]] = path.bounds(d);
             event.stopPropagation();
@@ -651,7 +689,7 @@
         function resetInfo() {
             if (activeSelection) activeSelection.classed("active", false);
             activeSelection = null;
-            
+
             svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
             d3.select("#reset-zoom").classed("opacity-0 pointer-events-none", true);
 
@@ -668,7 +706,8 @@
             const metrics = currentView === 'county' ? countyMetrics : regionMetrics;
 
             metrics.forEach(m => {
-                const row = container.append("div").attr("class", "flex items-center mb-2 cursor-pointer");
+                // Use <label> so clicking anywhere on the row toggles the radio
+                const row = container.append("label").attr("class", "flex items-center mb-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition select-none");
                 const input = row.append("input")
                     .attr("type", "radio")
                     .attr("name", "metric")
@@ -677,14 +716,14 @@
                         currentMetric = m;
                         renderMap();
                     });
-                row.append("span").attr("class", "ml-2 text-sm text-slate-700").text(m.label);
+                row.append("span").attr("class", "ml-2 text-sm text-slate-700 font-medium").text(m.label);
             });
         }
 
         function updateLegend(scale) {
             const container = d3.select("#legend").html("");
             const range = scale.range();
-            
+
             const legendRow = container.append("div").attr("class", "flex w-full h-3 rounded overflow-hidden mb-1");
             range.forEach(color => {
                 legendRow.append("div").style("background", color).style("flex", 1);
@@ -702,4 +741,5 @@
 
     </script>
 </body>
+
 </html>
