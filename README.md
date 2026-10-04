@@ -1,7 +1,5 @@
-Aryan Malik - 9084204777
-Michelle Rozenfeld - 2014681141
-Valart Magjuni - 908-838-5260
-Ryaan Zahidani - 7323074595
-Priya Rana - 7327547870
+# Virginia reentry opportunity research (Fall 2025)
 
-Drive Link: https://drive.google.com/drive/folders/15i2SK2flyVumJ4ZsVRa7XvsQeHJ_1Lui?usp=drive_link
+Historical Rutgers Economics Labs project repository. The folders retain project work and documentation from the Fall 2025 research period. This repository is public; review file-level provenance and privacy before reusing or distributing any underlying records. Project materials here should not be treated as participant-level data authorization.
+
+For project coordination, use the Rutgers Economics Labs organization channels. Personal phone numbers and internal Drive folder links are intentionally omitted from this public README.
